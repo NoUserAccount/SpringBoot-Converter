@@ -18,16 +18,18 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Repository
 public class ConverterDAOImpl implements ConverterDAO {
 
-	private Connection conn;
 	private Connection conne;
 	private ResultSet rs;
-	HashMap<String, Double> mapKV = new HashMap<String, Double>();
+	HashMap<String, List<String>> mapKV = new HashMap<String, List<String>>();
 	URL obj = null;
 	HttpURLConnection con = null;
+	ErrorModel em = new ErrorModel();
 	private boolean ok = false;
 	private InputStreamReader sr = null;
 	private BufferedReader in = null;
@@ -45,13 +47,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+			em.setErrorMessage("Nije moguće uspostaviti http konekciju!");
 		}
 		if (!ok)
 			return null;
 		return con;
 	}
 
-	public StringBuilder downloadHNB(String url) {
+	public StringBuilder getHNB(String url) {
 		if ((con = urlConnect(url)) != null) {
 			try {
 				sr = new InputStreamReader(con.getInputStream());
@@ -64,13 +67,12 @@ public class ConverterDAOImpl implements ConverterDAO {
 				in.close();
 			} catch (IOException e) {
 				e.printStackTrace();
-				System.out.println("HTTP konekcija nije uspjela!");
 			}
 		}
 		return response;
 	}
 
-	public void loadDataModel(StringBuilder response) throws JSONException {
+	public HashMap<String, List<String>> fillDataModel(StringBuilder response) throws JSONException {
 		JSONArray arr = new JSONArray(response.toString());
 		HashMap<String, List<String>> valuteKV = new HashMap<String, List<String>>();
 		for (int i = 0; i < arr.length(); i++) {
@@ -84,6 +86,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			lista.add(datum);
 			valuteKV.put(valuta, lista);
 		}
+		return valuteKV;
 	}
 
 	// -------------------------------------------------------------------------------------------------->
@@ -103,22 +106,23 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return null;
 	}
 
-	public HashMap<String, Double> loadDataFromDB(String statement) {
-		conn = connect();
+	public HashMap<String,List<String>> loadDataFromDB(Connection conn, String datum) {
+		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum='"+datum+"'";
 		try {
-			rs = conn.createStatement().executeQuery(statement);
+			rs = conn.createStatement().executeQuery(sql);
 			while (rs.next()) {
-				mapKV.put(rs.getString(1), rs.getDouble(2));
+				ArrayList<String> arr = new ArrayList<>();
+				arr.add(String.valueOf(rs.getFloat(2)));
+				arr.add(String.valueOf(rs.getInt(3)));
+				mapKV.put(rs.getString(1), arr);
 			}
 			conn.close();
 		} catch (SQLException e1) {
-			System.out.println("");
 		}
 		return mapKV;
 	}
 
-	public void tecajRazdoblje() throws JSONException, SQLException {
-		Connection conn;
+	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException {
 		StringBuilder response = null;
 		ConverterDAOImpl impl = new ConverterDAOImpl();
 		String valuta = null;
@@ -140,7 +144,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			o = rs.getInt(1);
 		}
 		if (o < 1000) {
-			response = impl.downloadHNB(url);
+			response = impl.getHNB(url);
 			JSONArray arr = new JSONArray(response.toString());
 			for (int i = 0; i < arr.length(); i++) {
 				datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
@@ -159,9 +163,18 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 	}
 
-	public boolean checkDate(String date, Connection conn) {
-		String statement = "SELECT COUNT(*) FROM Valute";
+	public boolean checkDate(String date, Connection conn, String datum) {					//testirano!
+		String statement = "SELECT COUNT(*) FROM Valute WHERE Datum='"+date+"'";
 		ResultSet rs = null;
+		StringBuilder response = null;
+		ConverterDAOImpl impl = new ConverterDAOImpl();
+		String valuta = null;
+		double vrijednost = 0;
+		double jedinica = 0;
+		String datumPrimjene = null;
+		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
+		JSONArray arr;
+
 		int numOfRows = 0;
 		try {
 			rs = conn.createStatement().executeQuery(statement);
@@ -170,18 +183,12 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			if (numOfRows != 0) {
 				conn.close();
+				System.out.println("NumOfRows=true="+numOfRows);
 				return true;
 			} else {
-				StringBuilder response = null;
-				ConverterDAOImpl impl = new ConverterDAOImpl();
-				String valuta = null;
-				double vrijednost = 0;
-				double jedinica = 0;
-				String datumPrimjene = null;
-				String url = "http://api.hnb.hr/tecajn/v1?datum=" + date;
-
-				response = impl.downloadHNB(url);
-				JSONArray arr = new JSONArray(response.toString());
+				System.out.println("NumOfRows=false="+numOfRows);
+				response = impl.getHNB(url);
+				arr = new JSONArray(response.toString());
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
 					valuta = arr.getJSONObject(i).getString("Valuta");
@@ -189,6 +196,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 							.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 					jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
 					try {
+						if (i == 0) {
+							conn.createStatement().executeUpdate(
+									"INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('" + "HRK"
+											+ "','" + "1" + "','" + "1" + "','" + datumPrimjene + "')");
+						}
 						conn.createStatement().executeUpdate(
 								"INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('" + valuta + "','"
 										+ vrijednost + "','" + jedinica + "','" + datumPrimjene + "')");
@@ -198,8 +210,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 				}
 			}
 		} catch (SQLException | JSONException e1) {
-			System.out.println("");
+			e1.printStackTrace();
 		}
 		return false;
 	}
+
 }
