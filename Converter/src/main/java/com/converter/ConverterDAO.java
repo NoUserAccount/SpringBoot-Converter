@@ -2,6 +2,7 @@ package com.converter;
 
 import java.net.HttpURLConnection;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import org.json.JSONException;
@@ -14,4 +15,5 @@ public interface ConverterDAO {
 	public HttpURLConnection urlConnect(String url);
 	public StringBuilder downloadHNB(String url);
 	public void loadDataModel(StringBuilder response) throws JSONException;
+	public void tecajRazdoblje() throws JSONException, SQLException;
 }

@@ -9,7 +9,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -80,7 +82,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			lista.add(vrijednost);
 			lista.add(jedinica);
 			lista.add(datum);
-			valuteKV.put(valuta,lista);
+			valuteKV.put(valuta, lista);
 		}
 	}
 
@@ -113,5 +115,91 @@ public class ConverterDAOImpl implements ConverterDAO {
 			System.out.println("");
 		}
 		return mapKV;
+	}
+
+	public void tecajRazdoblje() throws JSONException, SQLException {
+		Connection conn;
+		StringBuilder response = null;
+		ConverterDAOImpl impl = new ConverterDAOImpl();
+		String valuta = null;
+		double vrijednost = 0;
+		double jedinica = 0;
+		String datumPrimjene = null;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		Date date = new Date(System.currentTimeMillis());
+		String time = sdf.format(date);
+		String timeAgo = String.valueOf(Integer.parseInt(time.substring(0, 4)) - 1) + time.substring(4);
+		String url = "http://api.hnb.hr/tecajn/v1?datum-od=" + timeAgo + "&datum-do=" + time;
+		String check = "SELECT COUNT(Valuta) FROM Valute";
+		ResultSet rs;
+
+		conn = impl.connect();
+		rs = conn.createStatement().executeQuery(check);
+		int o = 0;
+		while (rs.next()) {
+			o = rs.getInt(1);
+		}
+		if (o < 1000) {
+			response = impl.downloadHNB(url);
+			JSONArray arr = new JSONArray(response.toString());
+			for (int i = 0; i < arr.length(); i++) {
+				datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
+				valuta = arr.getJSONObject(i).getString("Valuta");
+				vrijednost = Double
+						.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
+				jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
+				try {
+					conn.createStatement()
+							.executeUpdate("INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('"
+									+ valuta + "','" + vrijednost + "','" + jedinica + "','" + datumPrimjene + "')");
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	public boolean checkDate(String date, Connection conn) {
+		String statement = "SELECT COUNT(*) FROM Valute";
+		ResultSet rs = null;
+		int numOfRows = 0;
+		try {
+			rs = conn.createStatement().executeQuery(statement);
+			while (rs.next()) {
+				numOfRows = rs.getInt(1);
+			}
+			if (numOfRows != 0) {
+				conn.close();
+				return true;
+			} else {
+				StringBuilder response = null;
+				ConverterDAOImpl impl = new ConverterDAOImpl();
+				String valuta = null;
+				double vrijednost = 0;
+				double jedinica = 0;
+				String datumPrimjene = null;
+				String url = "http://api.hnb.hr/tecajn/v1?datum=" + date;
+
+				response = impl.downloadHNB(url);
+				JSONArray arr = new JSONArray(response.toString());
+				for (int i = 0; i < arr.length(); i++) {
+					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
+					valuta = arr.getJSONObject(i).getString("Valuta");
+					vrijednost = Double
+							.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
+					jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
+					try {
+						conn.createStatement().executeUpdate(
+								"INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('" + valuta + "','"
+										+ vrijednost + "','" + jedinica + "','" + datumPrimjene + "')");
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		} catch (SQLException | JSONException e1) {
+			System.out.println("");
+		}
+		return false;
 	}
 }

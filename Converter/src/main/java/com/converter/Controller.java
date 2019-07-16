@@ -10,11 +10,10 @@ import org.springframework.web.servlet.ModelAndView;
 @RestController
 public class Controller {
 
-	private ModelAndView mav;
-	private StringBuilder response = null;
-	private ConverterDAOImpl dao = new ConverterDAOImpl();
-	private String url = "http://api.hnb.hr/tecajn/v1";
-	HNBrazdoblje hnb = new HNBrazdoblje();
+	ModelAndView mav;
+	StringBuilder response = null;
+	ConverterDAOImpl dao = new ConverterDAOImpl();
+	String url = "http://api.hnb.hr/tecajn/v1";
 
 	@RequestMapping("/converter")
 	public ModelAndView jspCall() {
@@ -22,7 +21,7 @@ public class Controller {
 		response = dao.downloadHNB(url);
 		try {
 			dao.loadDataModel(response);
-			hnb.tecajRazdoblje();
+			dao.tecajRazdoblje();
 		} catch (JSONException | SQLException e) {
 			e.printStackTrace();
 		}
