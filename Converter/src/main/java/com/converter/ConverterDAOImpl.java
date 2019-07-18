@@ -18,30 +18,21 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Repository
 public class ConverterDAOImpl implements ConverterDAO {
 
-	private Connection conne;
-	private ResultSet rs;
-	HashMap<String, List<String>> mapKV = new HashMap<String, List<String>>();
-	URL obj = null;
-	HttpURLConnection con = null;
-	ErrorModel em = new ErrorModel();
-	private boolean ok = false;
-	private InputStreamReader sr = null;
-	private BufferedReader in = null;
-	private StringBuilder response = null;
-	private String inputLine = null;
 
 	// -------------------------------------------------------------------------------------------------->
 	// H T T P
 	public HttpURLConnection urlConnect(String url) {
+		URL obj = null;
+		HttpURLConnection con = null;
+		ErrorModel em = new ErrorModel();
+		boolean ok = false;
 		try {
 			obj = new URL(url);
-			con = (HttpURLConnection) obj.openConnection();
+			con  = (HttpURLConnection) obj.openConnection();
 			if (con.getResponseCode() == 200) {
 				ok = true;
 			}
@@ -55,6 +46,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	public StringBuilder getHNB(String url) {
+		HttpURLConnection con = null;
+		String inputLine = "";
+		StringBuilder response = null;
+		InputStreamReader sr = null;;
+		BufferedReader in = null;
 		if ((con = urlConnect(url)) != null) {
 			try {
 				sr = new InputStreamReader(con.getInputStream());
@@ -72,7 +68,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return response;
 	}
 
-	public HashMap<String, List<String>> fillDataModel(StringBuilder response) throws JSONException {
+	public HashMap<String, List<String>> populateDataModel(StringBuilder response) throws JSONException {
 		JSONArray arr = new JSONArray(response.toString());
 		HashMap<String, List<String>> valuteKV = new HashMap<String, List<String>>();
 		for (int i = 0; i < arr.length(); i++) {
@@ -92,6 +88,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	// -------------------------------------------------------------------------------------------------->
 	// D A T A B A S E
 	public Connection connect() {
+		Connection conne = null;
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
@@ -106,20 +103,21 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return null;
 	}
 
-	public HashMap<String,List<String>> loadDataFromDB(Connection conn, String datum) {
+	public DBModel loadDataFromDB(Connection conn, String datum) {
 		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum='"+datum+"'";
+		ResultSet rs = null;
+		DBModel dbm = new DBModel();
 		try {
 			rs = conn.createStatement().executeQuery(sql);
 			while (rs.next()) {
-				ArrayList<String> arr = new ArrayList<>();
-				arr.add(String.valueOf(rs.getFloat(2)));
-				arr.add(String.valueOf(rs.getInt(3)));
-				mapKV.put(rs.getString(1), arr);
+				dbm.setValuta(rs.getString(1));
+				dbm.setJedinica(rs.getInt(2));
+				dbm.setIznos(rs.getFloat(3));
 			}
 			conn.close();
 		} catch (SQLException e1) {
 		}
-		return mapKV;
+		return dbm;
 	}
 
 	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException {
@@ -163,7 +161,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 	}
 
-	public boolean checkDate(String date, Connection conn, String datum) {					//testirano!
+	public void assureDate(String date, Connection conn, String datum) {					//testirano!
 		String statement = "SELECT COUNT(*) FROM Valute WHERE Datum='"+date+"'";
 		ResultSet rs = null;
 		StringBuilder response = null;
@@ -184,7 +182,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 			if (numOfRows != 0) {
 				conn.close();
 				System.out.println("NumOfRows=true="+numOfRows);
-				return true;
 			} else {
 				System.out.println("NumOfRows=false="+numOfRows);
 				response = impl.getHNB(url);
@@ -212,7 +209,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 		} catch (SQLException | JSONException e1) {
 			e1.printStackTrace();
 		}
-		return false;
 	}
 
+	@Override
+	public void populateDropdown(Connection conn) {
+		
+	}
 }

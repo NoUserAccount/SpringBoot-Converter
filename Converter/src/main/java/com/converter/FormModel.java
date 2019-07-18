@@ -1,11 +1,27 @@
 package com.converter;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 public class FormModel {
 
 	private String valutaP;
 	private String valutaO;
 	private String datum;
 	private String iznos;
+	private Map<String, ArrayList<String>> formKV = new HashMap<>();
+	
+	
+
+
+	public Map<String, ArrayList<String>> getFormKV() {
+		return formKV;
+	}
+
+	public void setFormKV(Map<String, ArrayList<String>> formKV) {
+		this.formKV = formKV;
+	}
 
 	public String getValutaP() {
 		return valutaP;

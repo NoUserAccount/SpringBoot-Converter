@@ -10,12 +10,13 @@ import org.json.JSONException;
 
 public interface ConverterDAO {
 
-	public HashMap<String,List<String>> loadDataFromDB(Connection conn, String datum);
+	public DBModel loadDataFromDB(Connection conn, String datum);
 	public Connection connect();
 	
 	public HttpURLConnection urlConnect(String url);
 	public StringBuilder getHNB(String url);
-	public HashMap<String,List<String>> fillDataModel(StringBuilder response) throws JSONException;
+	public HashMap<String,List<String>> populateDataModel(StringBuilder response) throws JSONException;
 	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException;
-	public boolean checkDate(String date, Connection conn, String datum);
+	public void assureDate(String date, Connection conn, String datum);
+	public void populateDropdown(Connection conn);
 }
