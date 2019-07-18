@@ -68,22 +68,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return response;
 	}
 
-	public HashMap<String, List<String>> populateDataModel(StringBuilder response) throws JSONException {
-		JSONArray arr = new JSONArray(response.toString());
-		HashMap<String, List<String>> valuteKV = new HashMap<String, List<String>>();
-		for (int i = 0; i < arr.length(); i++) {
-			List<String> lista = new ArrayList<String>();
-			String valuta = arr.getJSONObject(i).getString("Valuta");
-			String vrijednost = arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", ".");
-			String jedinica = arr.getJSONObject(i).getString("Jedinica");
-			String datum = arr.getJSONObject(i).getString("Datum primjene");
-			lista.add(vrijednost);
-			lista.add(jedinica);
-			lista.add(datum);
-			valuteKV.put(valuta, lista);
-		}
-		return valuteKV;
-	}
 
 	// -------------------------------------------------------------------------------------------------->
 	// D A T A B A S E
