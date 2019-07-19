@@ -10,6 +10,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,6 +27,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	// -------------------------------------------------------------------------------------------------->
 	// H T T P
+	@Override
 	public HttpURLConnection urlConnect(String url) {
 		URL obj = null;
 		HttpURLConnection con = null;
@@ -45,7 +47,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			return null;
 		return con;
 	}
-
+	@Override
 	public StringBuilder getHNB(String url) {
 		HttpURLConnection con = null;
 		String inputLine = "";
@@ -72,6 +74,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	// -------------------------------------------------------------------------------------------------->
 	// D A T A B A S E
+	@Override
 	public Connection connect() {
 		Connection conne = null;
 		try {
@@ -88,13 +91,15 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return null;
 	}
 
-	public DBModel loadDataFromDB(Connection conn, String datum) throws SQLException {
-		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum= ?";
+	@Override
+	public DBModel loadDataFromDB(Connection conn, String datum, String valuta) throws SQLException {
+		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum= ? AND Valuta = ?";
 		ResultSet rs = null;
 		DBModel dbm = new DBModel();
 		try {
 			PreparedStatement ps = conn.prepareStatement(sql);
 			ps.setString(1, datum);
+			ps.setString(2, valuta);
 			rs = ps.executeQuery();
 			while (rs.next()) {
 				dbm.setValuta(rs.getString(1));
@@ -107,6 +112,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return dbm;
 	}
 
+	@Override
 	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException {
 		StringBuilder response = null;
 		ConverterDAOImpl impl = new ConverterDAOImpl();
@@ -150,7 +156,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 	}
 
-	public void assureDate(String date, Connection conn, String datum) {					//testirano!
+	@Override
+	public void assureDate(String date, Connection conn, String datum) {
 		String sqlCount = "SELECT COUNT(*) FROM Valute WHERE Datum= ?";
 		String sqlUpdate = "INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) Values (?,?,?,?)";
 		ResultSet rs = null;
@@ -166,7 +173,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		int numOfRows = 0;
 		try {
 			PreparedStatement psCount = conn.prepareStatement(sqlCount);
-			psCount.setString(1, datum);
+			psCount.setString(1, date);
 			rs = psCount.executeQuery();
 			while (rs.next()) {
 				numOfRows = rs.getInt(1);
@@ -190,7 +197,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 							ps.setString(1, "HRK");
 							ps.setInt(2, 1);
 							ps.setFloat(3, 1);
-							ps.setString(4, datum);
+							ps.setString(4, datumPrimjene);
 							ps.executeUpdate();
 						}
 						PreparedStatement ps = conn.prepareStatement(sqlUpdate);
@@ -208,9 +215,34 @@ public class ConverterDAOImpl implements ConverterDAO {
 			e1.printStackTrace();
 		}
 	}
-
+	
 	@Override
-	public void populateDropdown(Connection conn) {
+	public void populateDropdown(Connection conn, String datum) {
+		String sql = "SELECT Valuta FROM Valute WHERE Datum= ?";
+		ResultSet rs = null;
+		PopulateDropdownModel pdd = new PopulateDropdownModel();
+		List<String> populateDDarr = new ArrayList<>();
+		try {
+			PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, datum);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				populateDDarr.add(rs.getString(1));
+			}
+			pdd.setPopulateDD(populateDDarr);
+			conn.close();
+		} catch (SQLException e1) {
+		}
+	}
+	
+	@Override
+	public MessageModel doConversion(int polaznaJed, int odredisnaJed, float polaznaVr, float odredisnaVr, float iznos) {
+		MessageModel mm = new MessageModel();
+		DecimalFormat df = new DecimalFormat("#0.00");
+		float sum = ((polaznaVr / polaznaJed) * iznos) / (odredisnaVr / odredisnaJed);
+		String formated = (df.format(sum));
 		
+		mm.setMessage("Iznos konverzije: "+formated);
+		return mm;
 	}
 }

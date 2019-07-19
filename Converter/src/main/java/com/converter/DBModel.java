@@ -3,6 +3,22 @@ package com.converter;
 public class DBModel {
 	private String valuta;
 	private int jedinica;
+	
+	private String valutaOdredisna;
+	private int jedinicaOdredisna;
+	
+	public String getValutaOdredisna() {
+		return valutaOdredisna;
+	}
+	public void setValutaOdredisna(String valutaOdredisna) {
+		this.valutaOdredisna = valutaOdredisna;
+	}
+	public int getJedinicaOdredisna() {
+		return jedinicaOdredisna;
+	}
+	public void setJedinicaOdredisna(int jedinicaOdredisna) {
+		this.jedinicaOdredisna = jedinicaOdredisna;
+	}
 	private float iznos;
 	
 	public String getValuta() {

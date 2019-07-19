@@ -29,19 +29,32 @@ public class Controller {
 
 	
 	@RequestMapping(value = "/converterSubmited", method = RequestMethod.GET)
-	public ModelAndView racun(@ModelAttribute FormModel form) throws SQLException, JSONException, ParseException {    
+	public ModelAndView onSubmitAction(@ModelAttribute FormModel form) throws SQLException, JSONException, ParseException {    
 		SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-		String datum = form.getDatum();
+		String datum = form.getDatum();								// datum
 		Date date = sdf.parse(datum);
 		String fDate = format.format(date);
-		String iznos = form.getIznos();
+		float iznos = Float.parseFloat(form.getIznos());			// iznos
+		String odredisna = form.getValutaO();						// odredisna valuta
+		String polazna = form.getValutaP();							// polazna valuta
+		MessageModel mm = new MessageModel();
 		Connection conn = impl.connect();
-		System.out.println(fDate+"  "+iznos);
-		impl.assureDate(fDate, conn, datum);			//osigurava valutu u bazi na zadani datum
-		dbm = impl.loadDataFromDB(conn, datum);			//puni objekt sa vrijednostima iz baze 
-
+		
+		impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
+		impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
+		
+		dbm = impl.loadDataFromDB(conn, fDate, polazna);			//  puni objekt sa vrijednostima iz baze 
+			int jedinicaPolazna = dbm.getJedinica();				// polazna jedinica
+			float vrijednostPolazna = dbm.getIznos();				// vrijednost polazne valute
+		dbm = impl.loadDataFromDB(conn, datum, odredisna);
+			int jedinicaOdredisna = dbm.getJedinica();				// odredisna jedinica
+			float vrijednostOdredisna = dbm.getIznos();				// vrijednost polazne valute
+		
+		mm = impl.doConversion(jedinicaPolazna, jedinicaOdredisna, vrijednostPolazna, vrijednostOdredisna, iznos);  // konverzija i result message
+		System.out.println(mm.getMessage());
 		conn.close();
 		return mav;
 	}
+	
 }

@@ -1,6 +1,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%> 	
 <%@ page import="com.converter.FormModel"%>
+<%@ page import="com.converter.PopulateDropdownModel"%>
 <%@ page import="com.converter.ErrorModel"%>
 <%@ page import="java.util.ArrayList"%>
 <%@ page import="java.util.HashMap"%>
@@ -47,16 +49,31 @@ h1 {
 			document.getElementById('datum').value = new Date().toISOString()
 					.substring(0, 10);
 		</script>
+		<%
+		PopulateDropdownModel pdd = new PopulateDropdownModel();
+		
+		
+		%>
 		<br>
+		<jsp:useBean id="obj" class="com.converter.PopulateDropdownModel" scope="page"/>
+
 		<h4>Odaberite polaznu valutu:</h4>
 		<select id="polazna" name="polaznaValuta">
-			<option value="default"></option>
+			<option value="default">--odaberite--</option>
+			<c:forEach var="item" items="${obj.getPopulateDD}">
+     		<option>${item}</option>
+    		</c:forEach>
 		</select><br> <br> <input type="button" id="zamijeni" name="zamijeni"
 			value="Zamijeni valute">
+			
 		<h4>Odaberite odredišnu valutu:</h4>
 		<select id="odredisna" name="odredisnaValuta">
 			<option value="default">Hrvatska kuna</option>
+			<c:forEach var="item" items="${obj.getPopulateDD}">
+     		<option>${item}</option>
+    		</c:forEach>
 		</select>
+		
 		<h4>Unesite iznos za konverziju:</h4>
 		<input type="number" value="1" min="0" step="0.01" id="unos"
 			name="iznos"> 
@@ -66,12 +83,14 @@ h1 {
 			FormModel fm = new FormModel();
 			String datum = request.getParameter("datum");
 			String iznos = request.getParameter("iznos");
-			String key = "EUR";
+			String polazna = request.getParameter("polazna");
+			String odredisna = request.getParameter("odredisna");
 
 			fm.setDatum(datum);
 			fm.setIznos(iznos);
-			fm.setValutaO("odredisnaValuta");
-			fm.setValutaP("polaznaValuta");%>
+			fm.setValutaO(odredisna);
+			fm.setValutaP(polazna);
+			%>
 			>
 		<br> <br> 
 		
