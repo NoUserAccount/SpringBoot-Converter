@@ -16,7 +16,7 @@ import org.springframework.web.servlet.ModelAndView;
 public class Controller {
 
 	ErrorModel err = new ErrorModel();
-	ModelAndView mav;
+	ModelAndView mav = new ModelAndView("firstPage.jsp");;
 	StringBuilder response = null;
 	ConverterDAOImpl impl = new ConverterDAOImpl();
 	String url = "http://api.hnb.hr/tecajn/v1";
@@ -24,17 +24,12 @@ public class Controller {
 	
 	@RequestMapping(value="/converter")
 	public ModelAndView jspCall() {
-		mav = new ModelAndView("firstPage.jsp");
 		return mav;
 	}
 
 	
-	@RequestMapping(value = "/converter", method = RequestMethod.POST)
-	public ModelAndView racun(@ModelAttribute FormModel form) throws SQLException, JSONException, ParseException {
-		mav = new ModelAndView("firstPage.jsp");  //, form.getFormKv()
-//		Map<String, ArrayList<String>> formKV = new HashMap<>();
-//		formKV = form.getFormKV();           //--------------------------------------------------------------------- null ?     
-//		System.out.println(formKV.values() + form.getDatum());
+	@RequestMapping(value = "/converterSubmited", method = RequestMethod.GET)
+	public ModelAndView racun(@ModelAttribute FormModel form) throws SQLException, JSONException, ParseException {    
 		SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		String datum = form.getDatum();
@@ -42,7 +37,7 @@ public class Controller {
 		String fDate = format.format(date);
 		String iznos = form.getIznos();
 		Connection conn = impl.connect();
-		
+		System.out.println(fDate+"  "+iznos);
 		impl.assureDate(fDate, conn, datum);			//osigurava valutu u bazi na zadani datum
 		dbm = impl.loadDataFromDB(conn, datum);			//puni objekt sa vrijednostima iz baze 
 

@@ -11,34 +11,35 @@
 <meta charset="UTF-8">
 <title>Currency Converter</title>
 <style>
-	.obrazac {
-		margin: auto;
-		width: 500px;
-		height: 500px;
-		background-color: grey;
-		border: black 2px solid;
-		text-align: center;
-	}
-	
-	h1 {
-		color: white;
-	}
-	
-	#odredisna, #polazna {
-		width: 200px;
-	}
-	
-	#status {
-		height: 30px;
-		width: 100%;
-		color: white;
-		font-size: 18px;
-	}
+.obrazac {
+	margin: auto;
+	width: 500px;
+	height: 500px;
+	background-color: grey;
+	border: black 2px solid;
+	text-align: center;
+}
+
+h1 {
+	color: white;
+}
+
+#odredisna, #polazna {
+	width: 200px;
+}
+
+#status {
+	height: 30px;
+	width: 100%;
+	color: white;
+	font-size: 18px;
+}
 </style>
+
 </head>
 
 <body>
-	<form class="obrazac" action="/converter" method="post">
+	<form class="obrazac" id="form" action="/converterSubmited" method="get" enctype="multipart/form-data">
 		<h1>Kalkulator valuta</h1>
 		<h4>Odaberite datum tečaja:</h4>
 		<input type="date" id="datum" name="datum">
@@ -58,28 +59,23 @@
 		</select>
 		<h4>Unesite iznos za konverziju:</h4>
 		<input type="number" value="1" min="0" step="0.01" id="unos"
-			name="iznos" onsubmit="false">
-		<input type="submit" id="button" value="Preračunaj" name="preracunaj"
+			name="iznos"> 
+			<input type="submit"
+			id="button" value="Preračunaj" name="preracunaj"
 			onClick=<%
 			FormModel fm = new FormModel();
-			Map<String, ArrayList<String>> formKV = new HashMap<>();
-			ArrayList<String> arr = new ArrayList<String>();
-			
 			String datum = request.getParameter("datum");
 			String iznos = request.getParameter("iznos");
 			String key = "EUR";
-			
-			arr.add(datum);
-			arr.add(iznos);
-			
-			formKV.put(key ,arr);  //--------------------------------------------->   TEST!!!
-			fm.setFormKV(formKV);
-			
+
 			fm.setDatum(datum);
 			fm.setIznos(iznos);
 			fm.setValutaO("odredisnaValuta");
-			fm.setValutaP("polaznaValuta");%>>
-		<br> <br> <label id="status"></label>
+			fm.setValutaP("polaznaValuta");%>
+			>
+		<br> <br> 
+		
+		<label id="status"></label>
 		<%
 			ErrorModel em = new ErrorModel();
 			request.setAttribute("status", em.getErrorMessage());

@@ -7,6 +7,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -87,12 +88,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return null;
 	}
 
-	public DBModel loadDataFromDB(Connection conn, String datum) {
-		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum='"+datum+"'";
+	public DBModel loadDataFromDB(Connection conn, String datum) throws SQLException {
+		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum= ?";
 		ResultSet rs = null;
 		DBModel dbm = new DBModel();
 		try {
-			rs = conn.createStatement().executeQuery(sql);
+			PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, datum);
+			rs = ps.executeQuery();
 			while (rs.next()) {
 				dbm.setValuta(rs.getString(1));
 				dbm.setJedinica(rs.getInt(2));
@@ -108,19 +111,20 @@ public class ConverterDAOImpl implements ConverterDAO {
 		StringBuilder response = null;
 		ConverterDAOImpl impl = new ConverterDAOImpl();
 		String valuta = null;
-		double vrijednost = 0;
-		double jedinica = 0;
+		float vrijednost = 0;
+		int jedinica = 0;
 		String datumPrimjene = null;
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		Date date = new Date(System.currentTimeMillis());
 		String time = sdf.format(date);
 		String timeAgo = String.valueOf(Integer.parseInt(time.substring(0, 4)) - 1) + time.substring(4);
 		String url = "http://api.hnb.hr/tecajn/v1?datum-od=" + timeAgo + "&datum-do=" + time;
-		String check = "SELECT COUNT(Valuta) FROM Valute";
+		String sqlCount = "SELECT COUNT(Valuta) FROM Valute";
+		String sqlUpdate = "INSERT INTO Valute (Valuta, Vrijednost, Jedinica, Datum) VALUES (????)";
 		ResultSet rs;
 
 		conn = impl.connect();
-		rs = conn.createStatement().executeQuery(check);
+		rs = conn.createStatement().executeQuery(sqlCount);
 		int o = 0;
 		while (rs.next()) {
 			o = rs.getInt(1);
@@ -131,13 +135,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 			for (int i = 0; i < arr.length(); i++) {
 				datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
 				valuta = arr.getJSONObject(i).getString("Valuta");
-				vrijednost = Double
-						.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
-				jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
+				vrijednost = Float.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
+				jedinica = Integer.parseInt(arr.getJSONObject(i).getString("Jedinica"));
 				try {
-					conn.createStatement()
-							.executeUpdate("INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('"
-									+ valuta + "','" + vrijednost + "','" + jedinica + "','" + datumPrimjene + "')");
+					PreparedStatement ps = conn.prepareStatement(sqlUpdate);
+					ps.setString(1, valuta);
+					ps.setFloat(2, vrijednost);
+					ps.setInt(3, jedinica);
+					ps.setString(4, datumPrimjene);
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -146,20 +151,23 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	public void assureDate(String date, Connection conn, String datum) {					//testirano!
-		String statement = "SELECT COUNT(*) FROM Valute WHERE Datum='"+date+"'";
+		String sqlCount = "SELECT COUNT(*) FROM Valute WHERE Datum= ?";
+		String sqlUpdate = "INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) Values (?,?,?,?)";
 		ResultSet rs = null;
 		StringBuilder response = null;
 		ConverterDAOImpl impl = new ConverterDAOImpl();
 		String valuta = null;
-		double vrijednost = 0;
-		double jedinica = 0;
+		float vrijednost = 0;
+		int jedinica = 0;
 		String datumPrimjene = null;
 		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
 		JSONArray arr;
 
 		int numOfRows = 0;
 		try {
-			rs = conn.createStatement().executeQuery(statement);
+			PreparedStatement psCount = conn.prepareStatement(sqlCount);
+			psCount.setString(1, datum);
+			rs = psCount.executeQuery();
 			while (rs.next()) {
 				numOfRows = rs.getInt(1);
 			}
@@ -173,18 +181,24 @@ public class ConverterDAOImpl implements ConverterDAO {
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
 					valuta = arr.getJSONObject(i).getString("Valuta");
-					vrijednost = Double
-							.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
-					jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
+					vrijednost = Float
+							.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
+					jedinica = Integer.parseInt(arr.getJSONObject(i).getString("Jedinica"));
 					try {
 						if (i == 0) {
-							conn.createStatement().executeUpdate(
-									"INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('" + "HRK"
-											+ "','" + "1" + "','" + "1" + "','" + datumPrimjene + "')");
+							PreparedStatement ps = conn.prepareStatement(sqlUpdate);
+							ps.setString(1, "HRK");
+							ps.setInt(2, 1);
+							ps.setFloat(3, 1);
+							ps.setString(4, datum);
+							ps.executeUpdate();
 						}
-						conn.createStatement().executeUpdate(
-								"INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) " + "VALUES ('" + valuta + "','"
-										+ vrijednost + "','" + jedinica + "','" + datumPrimjene + "')");
+						PreparedStatement ps = conn.prepareStatement(sqlUpdate);
+						ps.setString(1, valuta);
+						ps.setFloat(2, vrijednost);
+						ps.setInt(3, jedinica);
+						ps.setString(4, datumPrimjene);
+						ps.executeUpdate();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}

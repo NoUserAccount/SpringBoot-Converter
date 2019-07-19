@@ -7,7 +7,7 @@ import org.json.JSONException;
 
 public interface ConverterDAO {
 
-	public DBModel loadDataFromDB(Connection conn, String datum);
+	public DBModel loadDataFromDB(Connection conn, String datum) throws SQLException;
 	public Connection connect();
 	
 	public HttpURLConnection urlConnect(String url);
