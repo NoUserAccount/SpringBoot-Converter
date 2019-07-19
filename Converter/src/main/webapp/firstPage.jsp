@@ -41,7 +41,7 @@ h1 {
 </head>
 
 <body>
-	<form class="obrazac" id="form" action="/converterSubmited" method="get" enctype="multipart/form-data">
+	<form class="obrazac" id="form" action="/converterSubmited" method="post" enctype="multipart/form-data">
 		<h1>Kalkulator valuta</h1>
 		<h4>Odaberite datum tečaja:</h4>
 		<input type="date" id="datum" name="datum">
@@ -49,18 +49,14 @@ h1 {
 			document.getElementById('datum').value = new Date().toISOString()
 					.substring(0, 10);
 		</script>
-		<%
-		PopulateDropdownModel pdd = new PopulateDropdownModel();
-		
-		
-		%>
 		<br>
+		
 		<jsp:useBean id="obj" class="com.converter.PopulateDropdownModel" scope="page"/>
 
 		<h4>Odaberite polaznu valutu:</h4>
 		<select id="polazna" name="polaznaValuta">
 			<option value="default">--odaberite--</option>
-			<c:forEach var="item" items="${obj.getPopulateDD}">
+			<c:forEach var="item" items="${obj.populateDD}">
      		<option>${item}</option>
     		</c:forEach>
 		</select><br> <br> <input type="button" id="zamijeni" name="zamijeni"
@@ -69,7 +65,7 @@ h1 {
 		<h4>Odaberite odredišnu valutu:</h4>
 		<select id="odredisna" name="odredisnaValuta">
 			<option value="default">Hrvatska kuna</option>
-			<c:forEach var="item" items="${obj.getPopulateDD}">
+			<c:forEach var="item" items="${obj.populateDD}">
      		<option>${item}</option>
     		</c:forEach>
 		</select>

@@ -28,31 +28,41 @@ public class Controller {
 	}
 
 	
-	@RequestMapping(value = "/converterSubmited", method = RequestMethod.GET)
+	@RequestMapping(value = "/converterSubmited", method = RequestMethod.POST)
 	public ModelAndView onSubmitAction(@ModelAttribute FormModel form) throws SQLException, JSONException, ParseException {    
+		MessageModel mm = new MessageModel();
+		Validacije val = new Validacije();
+		Connection conn = impl.connect();
+		
 		SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		String datum = form.getDatum();								// datum
 		Date date = sdf.parse(datum);
 		String fDate = format.format(date);
-		float iznos = Float.parseFloat(form.getIznos());			// iznos
-		String odredisna = form.getValutaO();						// odredisna valuta
-		String polazna = form.getValutaP();							// polazna valuta
-		MessageModel mm = new MessageModel();
-		Connection conn = impl.connect();
 		
-		impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
-		impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
-		
-		dbm = impl.loadDataFromDB(conn, fDate, polazna);			//  puni objekt sa vrijednostima iz baze 
-			int jedinicaPolazna = dbm.getJedinica();				// polazna jedinica
-			float vrijednostPolazna = dbm.getIznos();				// vrijednost polazne valute
-		dbm = impl.loadDataFromDB(conn, datum, odredisna);
-			int jedinicaOdredisna = dbm.getJedinica();				// odredisna jedinica
-			float vrijednostOdredisna = dbm.getIznos();				// vrijednost polazne valute
-		
-		mm = impl.doConversion(jedinicaPolazna, jedinicaOdredisna, vrijednostPolazna, vrijednostOdredisna, iznos);  // konverzija i result message
-		System.out.println(mm.getMessage());
+		if(val.validacijaDatuma(fDate)) {
+			float iznos = Float.parseFloat(form.getIznos());			// iznos
+			String odredisna = form.getValutaO();						// odredisna valuta
+			String polazna = form.getValutaP();							// polazna valuta
+			
+			
+			
+			impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
+			impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
+			
+			dbm = impl.loadDataFromDB(conn, fDate, polazna);			//  puni objekt sa vrijednostima iz baze 
+				int jedinicaPolazna = dbm.getJedinica();				// polazna jedinica
+				float vrijednostPolazna = dbm.getIznos();				// vrijednost polazne valute
+			dbm = impl.loadDataFromDB(conn, datum, odredisna);
+				int jedinicaOdredisna = dbm.getJedinica();				// odredisna jedinica
+				float vrijednostOdredisna = dbm.getIznos();				// vrijednost polazne valute
+			
+			mm = impl.doConversion(jedinicaPolazna, jedinicaOdredisna, vrijednostPolazna, vrijednostOdredisna, iznos);  // konverzija i result message
+			System.out.println(mm.getMessage());
+		}
+		else {
+			mm.setMessage("Datum mora biti u obliku 'dd/mm/gggg' !");
+		}
 		conn.close();
 		return mav;
 	}
