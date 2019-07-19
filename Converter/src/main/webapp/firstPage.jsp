@@ -44,7 +44,11 @@ h1 {
 	<form class="obrazac" id="form" action="/converterSubmited" method="post" enctype="multipart/form-data">
 		<h1>Kalkulator valuta</h1>
 		<h4>Odaberite datum tečaja:</h4>
-		<input type="date" id="datum" name="datum">
+		<input type="date" id="datum" name="datum" onsubmit=<% 
+		
+		//populate dropdownModel with values
+		
+		%>>
 		<script>
 			document.getElementById('datum').value = new Date().toISOString()
 					.substring(0, 10);

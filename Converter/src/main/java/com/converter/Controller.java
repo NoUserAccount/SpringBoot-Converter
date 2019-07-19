@@ -37,15 +37,13 @@ public class Controller {
 		SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		String datum = form.getDatum();								// datum
-		Date date = sdf.parse(datum);
-		String fDate = format.format(date);
-		
-		if(val.validacijaDatuma(fDate)) {
+		System.out.println(datum);
+		if(val.validacijaDatuma(datum)) {
+			Date date = sdf.parse(datum);
+			String fDate = format.format(date);
 			float iznos = Float.parseFloat(form.getIznos());			// iznos
 			String odredisna = form.getValutaO();						// odredisna valuta
 			String polazna = form.getValutaP();							// polazna valuta
-			
-			
 			
 			impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
 			impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
@@ -61,7 +59,9 @@ public class Controller {
 			System.out.println(mm.getMessage());
 		}
 		else {
-			mm.setMessage("Datum mora biti u obliku 'dd/mm/gggg' !");
+			
+			err.setErrorMessage("Datum mora biti u obliku 'dd/mm/gggg' !");
+			System.out.println(mm.getMessage());
 		}
 		conn.close();
 		return mav;
