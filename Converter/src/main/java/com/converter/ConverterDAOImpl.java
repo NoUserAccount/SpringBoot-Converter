@@ -19,6 +19,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.springframework.stereotype.Repository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Repository
 public class ConverterDAOImpl implements ConverterDAO {
 
@@ -147,6 +149,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 					ps.setFloat(2, vrijednost);
 					ps.setInt(3, jedinica);
 					ps.setString(4, datumPrimjene);
+					ps.executeUpdate();
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -182,6 +185,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			} else {
 				System.out.println("NumOfRows=false="+numOfRows);
 				response = impl.getHNB(url);
+				ObjectMapper mapper = new ObjectMapper();
+				
 				arr = new JSONArray(response.toString());
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
