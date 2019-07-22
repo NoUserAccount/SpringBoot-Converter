@@ -106,7 +106,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 				dbm.setJedinica(rs.getInt(2));
 				dbm.setIznos(rs.getFloat(3));
 			}
-			conn.close();
 		} catch (SQLException e1) {
 		}
 		return dbm;
@@ -233,7 +232,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 				populateDDarr.add(rs.getString(1));
 			}
 			pdd.setPopulateDD(populateDDarr);
-			conn.close();
 		} catch (SQLException e1) {
 		}
 	}

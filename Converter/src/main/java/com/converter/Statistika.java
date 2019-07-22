@@ -27,16 +27,15 @@ public class Statistika {
 		}
 	}
 	
-	public int getMostCommonOverall(Connection conn) {
-		String sql = "SELECT Valuta,SUM(counter) AS Ukupno FROM DnevnaStatistika GROUP BY Valuta ORDER BY total DESC LIMIT 1";
-		int result = 0;
+	public String getMostCommonOverall(Connection conn) {
+		String sql = "SELECT Valuta, SUM(counter) AS Ukupno FROM DnevnaStatistika GROUP BY Valuta ORDER BY Ukupno DESC LIMIT 1";
+		String result = "";
 		try {
 			ResultSet rs = null;
 			rs = conn.createStatement().executeQuery(sql);
 			while (rs.next()) {
-				result = Integer.parseInt(rs.getString(1));
+				result = rs.getString(1);
 			}
-			conn.close();
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
@@ -44,16 +43,16 @@ public class Statistika {
 	}
 	
 	
-	public int getMostComonInterval(Connection connection, int interval) {
-		String sql = "select Valuta,sum(counter) as total from DnevnaStatistika WHERE Datum >= DATE(NOW()) - INTERVAL ? DAY group by Valuta order by total desc limit 1";
+	public String getMostComonInterval(Connection connection, int interval) {
+		String sql = "SELECT Valuta, SUM(counter) AS total FROM DnevnaStatistika WHERE Datum >= DATE(NOW()) - INTERVAL ? DAY GROUP BY Valuta ORDER BY total DESC LIMIT 1";
 		ResultSet rs = null;
-		int result = 0;
+		String result = "";
 		try {
 			PreparedStatement ps = connection.prepareStatement(sql);
 			ps.setInt(1, interval);
 			rs = ps.executeQuery();
 			while (rs.next()) {
-				result = Integer.parseInt(rs.getString(1));
+				result = rs.getString(1);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

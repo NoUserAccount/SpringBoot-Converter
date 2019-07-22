@@ -45,6 +45,10 @@ public class Controller {
 			String odredisna = form.getValutaO();						// odredisna valuta
 			String polazna = form.getValutaP();							// polazna valuta
 			
+			Statistika stat = new Statistika();
+			String a = stat.getMostCommonOverall(conn);
+			System.out.println("Najčešće birana polazna valuta: "+a);
+			
 			impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
 			impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
 			
@@ -63,6 +67,7 @@ public class Controller {
 			err.setErrorMessage("Datum mora biti u obliku 'dd/mm/gggg' !");
 			System.out.println(mm.getMessage());
 		}
+
 		conn.close();
 		return mav;
 	}
