@@ -23,7 +23,7 @@ public class Controller {
 	DBModel dbm = new DBModel();
 	
 	@RequestMapping(value="/converter")
-	public ModelAndView jspCall() {
+	public ModelAndView reactCall() {
 		return mav;
 	}
 
@@ -33,21 +33,18 @@ public class Controller {
 		MessageModel mm = new MessageModel();
 		Validacije val = new Validacije();
 		Connection conn = impl.connect();
-		
 		SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		String datum = form.getDatum();								// datum
-		System.out.println(datum);
+		
 		if(val.validacijaDatuma(datum)) {
 			Date date = sdf.parse(datum);
 			String fDate = format.format(date);
 			float iznos = Float.parseFloat(form.getIznos());			// iznos
 			String odredisna = form.getValutaO();						// odredisna valuta
 			String polazna = form.getValutaP();							// polazna valuta
-			
 			Statistika stat = new Statistika();
-			String a = stat.getMostCommonOverall(conn);
-			System.out.println("Najčešće birana polazna valuta: "+a);
+			stat.updateCounter("Dollar", conn);
 			
 			impl.assureDate(fDate, conn, datum);						//  osigurava valutu u bazi na zadani datum
 			impl.populateDropdown(conn, datum);							//  puni objekt sa vrijednostima za dropdown
@@ -59,7 +56,8 @@ public class Controller {
 				int jedinicaOdredisna = dbm.getJedinica();				// odredisna jedinica
 				float vrijednostOdredisna = dbm.getIznos();				// vrijednost polazne valute
 			
-			mm = impl.doConversion(jedinicaPolazna, jedinicaOdredisna, vrijednostPolazna, vrijednostOdredisna, iznos);  // konverzija i result message
+			mm = impl.doConversion(1, 100, 7.44f, 5.63f, 2500.01f);  // konverzija i result message
+			
 			System.out.println(mm.getMessage());
 		}
 		else {
@@ -71,5 +69,15 @@ public class Controller {
 		conn.close();
 		return mav;
 	}
+	
+	@RequestMapping(value="/converterStats", method=RequestMethod.GET)
+	public String getStats() {
+		Connection conn = impl.connect();
+		Statistika stat = new Statistika();
+		String statistika = stat.getMostCommonOverall(conn);
+		System.out.println("Najčešće birana polazna valuta: " + statistika);
+		return statistika;
+	}
+	
 	
 }

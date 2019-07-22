@@ -180,9 +180,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			if (numOfRows != 0) {
 				conn.close();
-				System.out.println("NumOfRows=true="+numOfRows);
 			} else {
-				System.out.println("NumOfRows=false="+numOfRows);
 				response = impl.getHNB(url);
 				ObjectMapper mapper = new ObjectMapper();
 				
