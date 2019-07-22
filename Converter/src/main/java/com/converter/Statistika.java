@@ -13,10 +13,9 @@ public class Statistika {
 		Date date = new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 		String time = sdf.format(date);
-		String sql = "INSERT INTO DnevnaStatistika (Valuta,Datum,Counter)\n" + "VALUES(?,?,?)\n" + // primary
-																									// key(Valuta,
-																									// Datum)
-				"ON DUPLICATE KEY UPDATE Counter = Counter + 1;";
+		String sql = "INSERT INTO DnevnaStatistika (Valuta,Datum,Counter)\n" + 
+				"VALUES(?,?,?)\n" + 								// primary key(Valuta, Datum)
+				"ON DUPLICATE KEY UPDATE Counter = Counter + 1;"; 
 		try {
 			PreparedStatement ps = connection.prepareStatement(sql);
 			ps.setString(1, polaznaValuta);
@@ -27,10 +26,9 @@ public class Statistika {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public String getMostCommonOverall(Connection conn) {
-		String sql = "SELECT Valuta, SUM(counter) AS Ukupno FROM DnevnaStatistika "
-				+ "GROUP BY Valuta ORDER BY Ukupno DESC LIMIT 1";
+		String sql = "SELECT Valuta, SUM(counter) AS Ukupno FROM DnevnaStatistika GROUP BY Valuta ORDER BY Ukupno DESC LIMIT 1";
 		String result = "";
 		try {
 			ResultSet rs = null;
@@ -43,10 +41,10 @@ public class Statistika {
 		}
 		return result;
 	}
-
+	
+	
 	public String getMostComonInterval(Connection connection, int interval) {
-		String sql = "SELECT Valuta, SUM(counter) AS Ukupno FROM DnevnaStatistika "
-				+ "WHERE Datum >= DATE(NOW()) - INTERVAL ? DAY GROUP BY Valuta ORDER BY Ukupno DESC LIMIT 1";
+		String sql = "SELECT Valuta, SUM(counter) AS total FROM DnevnaStatistika WHERE Datum >= DATE(NOW()) - INTERVAL ? DAY GROUP BY Valuta ORDER BY total DESC LIMIT 1";
 		ResultSet rs = null;
 		String result = "";
 		try {
@@ -62,3 +60,4 @@ public class Statistika {
 		return result;
 	}
 }
+
