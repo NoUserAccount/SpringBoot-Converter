@@ -19,8 +19,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.springframework.stereotype.Repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 @Repository
 public class ConverterDAOImpl implements ConverterDAO {
 
@@ -181,9 +179,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			if (numOfRows != 0) {
 				conn.close();
 			} else {
-				response = impl.getHNB(url);
-				ObjectMapper mapper = new ObjectMapper();
-				
+				response = impl.getHNB(url);				
 				arr = new JSONArray(response.toString());
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
@@ -217,7 +213,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 	
 	@Override
-	public void populateDropdown(Connection conn, String datum) {
+	public PopulateDropdownModel populateDropdown(Connection conn, String datum) {
 		String sql = "SELECT Valuta FROM Valute WHERE Datum= ?";
 		ResultSet rs = null;
 		PopulateDropdownModel pdd = new PopulateDropdownModel();
@@ -232,6 +228,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			pdd.setPopulateDD(populateDDarr);
 		} catch (SQLException e1) {
 		}
+		return pdd;
 	}
 	
 	@Override

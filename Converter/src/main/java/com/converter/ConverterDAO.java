@@ -14,6 +14,6 @@ public interface ConverterDAO {
 	public StringBuilder getHNB(String url);
 	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException;
 	public void assureDate(String date, Connection conn, String datum);
-	public void populateDropdown(Connection conn, String datum);
+	public PopulateDropdownModel populateDropdown(Connection conn, String datum);
 	public MessageModel doConversion(int polazna, int odredisna, float polaznaVr, float odredisnaVr, float iznos);
 }
