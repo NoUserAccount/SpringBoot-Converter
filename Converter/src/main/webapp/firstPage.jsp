@@ -1,9 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%> 	
-<%@ page import="com.converter.FormModel"%>
-<%@ page import="com.converter.PopulateDropdownModel"%>
-<%@ page import="com.converter.ErrorModel"%>
+<%@ page import="com.converter.model.FormModel"%>
+<%@ page import="com.converter.model.PopulateDropdownModel"%>
+<%@ page import="com.converter.model.ErrorModel"%>
 <%@ page import="java.util.ArrayList"%>
 <%@ page import="java.util.HashMap"%>
 <%@ page import="java.util.Map"%>
@@ -44,18 +44,14 @@ h1 {
 	<form class="obrazac" id="form" action="/converterSubmited" method="post" enctype="multipart/form-data">
 		<h1>Kalkulator valuta</h1>
 		<h4>Odaberite datum tečaja:</h4>
-		<input type="date" id="datum" name="datum" onsubmit=<% 
-		
-		//populate dropdownModel with values
-		
-		%>>
+		<input type="date" id="datum" name="datum" onsubmit=<%//populate dropdownModel with values%>>
 		<script>
 			document.getElementById('datum').value = new Date().toISOString()
 					.substring(0, 10);
 		</script>
 		<br>
 		
-		<jsp:useBean id="obj" class="com.converter.PopulateDropdownModel" scope="page"/>
+		<jsp:useBean id="obj" class="com.converter.model.PopulateDropdownModel" scope="page"/>
 
 		<h4>Odaberite polaznu valutu:</h4>
 		<select id="polazna" name="polaznaValuta">

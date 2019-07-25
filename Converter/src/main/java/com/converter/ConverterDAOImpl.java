@@ -15,14 +15,32 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.converter.model.DBModel;
+import com.converter.model.ErrorModel;
+import com.converter.model.JsonModel;
+import com.converter.model.MessageModel;
+import com.converter.model.PopulateDropdownModel;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Repository
+@ComponentScan(basePackages="com.converter")
+//@ComponentScan(basePackages="com.converter.JdbcConfig")
+@EnableAutoConfiguration
 public class ConverterDAOImpl implements ConverterDAO {
 
-
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+	
 	// -------------------------------------------------------------------------------------------------->
 	// H T T P
 	@Override
@@ -33,7 +51,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		boolean ok = false;
 		try {
 			obj = new URL(url);
-			con  = (HttpURLConnection) obj.openConnection();
+			con = (HttpURLConnection) obj.openConnection();
 			if (con.getResponseCode() == 200) {
 				ok = true;
 			}
@@ -45,12 +63,13 @@ public class ConverterDAOImpl implements ConverterDAO {
 			return null;
 		return con;
 	}
+
 	@Override
 	public StringBuilder getHNB(String url) {
 		HttpURLConnection con = null;
 		String inputLine = "";
 		StringBuilder response = null;
-		InputStreamReader sr = null;;
+		InputStreamReader sr = null;
 		BufferedReader in = null;
 		if ((con = urlConnect(url)) != null) {
 			try {
@@ -69,6 +88,20 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return response;
 	}
 
+	@Override
+	public String fetchJsonJackson() {
+		URL url;
+		String response = "";
+		try {
+			url = new URL("http://api.hnb.hr/tecajn/v1");
+			ObjectMapper mapper = new ObjectMapper();
+			JsonModel[] obj = mapper.readValue(url, JsonModel[].class);
+			response = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
 
 	// -------------------------------------------------------------------------------------------------->
 	// D A T A B A S E
@@ -90,6 +123,23 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	@Override
+	public DBModel jdbcTemplate(String datum, String valuta) {
+		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum= ? AND Valuta = ?";
+		try {
+			return jdbcTemplate.queryForObject(sql, new Object[] { datum, valuta }, (rs, rowNum) -> {
+						DBModel dbm = new DBModel();
+						dbm.setValuta(rs.getString(1));
+						dbm.setVrijednost(rs.getFloat(2));
+						dbm.setJedinica(rs.getInt(3));
+						return dbm;
+					});
+		} catch (EmptyResultDataAccessException e) {
+			System.out.println("Rezultat je null!");
+			return null;
+		}
+	}
+	
+	@Override
 	public DBModel loadDataFromDB(Connection conn, String datum, String valuta) throws SQLException {
 		String sql = "SELECT Valuta,Vrijednost,Jedinica FROM Valute WHERE Datum= ? AND Valuta = ?";
 		ResultSet rs = null;
@@ -101,8 +151,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			rs = ps.executeQuery();
 			while (rs.next()) {
 				dbm.setValuta(rs.getString(1));
-				dbm.setJedinica(rs.getInt(2));
-				dbm.setIznos(rs.getFloat(3));
+				dbm.setVrijednost(rs.getFloat(2));
+				dbm.setJedinica(rs.getInt(3));
 			}
 		} catch (SQLException e1) {
 		}
@@ -138,7 +188,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			for (int i = 0; i < arr.length(); i++) {
 				datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
 				valuta = arr.getJSONObject(i).getString("Valuta");
-				vrijednost = Float.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
+				vrijednost = Float
+						.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 				jedinica = Integer.parseInt(arr.getJSONObject(i).getString("Jedinica"));
 				try {
 					PreparedStatement ps = conn.prepareStatement(sqlUpdate);
@@ -179,7 +230,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			if (numOfRows != 0) {
 				conn.close();
 			} else {
-				response = impl.getHNB(url);				
+				response = impl.getHNB(url);
 				arr = new JSONArray(response.toString());
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
@@ -211,7 +262,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			e1.printStackTrace();
 		}
 	}
-	
+
 	@Override
 	public PopulateDropdownModel populateDropdown(Connection conn, String datum) {
 		String sql = "SELECT Valuta FROM Valute WHERE Datum= ?";
@@ -230,15 +281,16 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 		return pdd;
 	}
-	
+
 	@Override
-	public MessageModel doConversion(int polaznaJed, int odredisnaJed, float polaznaVr, float odredisnaVr, float iznos) {
+	public MessageModel doConversion(int polaznaJed, int odredisnaJed, float polaznaVr, float odredisnaVr,
+			float iznos) {
 		MessageModel mm = new MessageModel();
 		DecimalFormat df = new DecimalFormat("#0.00");
 		float sum = ((polaznaVr / polaznaJed) * iznos) / (odredisnaVr / odredisnaJed);
 		String formated = (df.format(sum));
-		
-		mm.setMessage("Iznos konverzije: "+formated);
+
+		mm.setMessage("Iznos konverzije: " + formated);
 		return mm;
 	}
 }

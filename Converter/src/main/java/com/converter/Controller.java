@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.converter.model.DBModel;
+import com.converter.model.ErrorModel;
+import com.converter.model.FormModel;
+import com.converter.model.MessageModel;
+import com.converter.model.PopulateDropdownModel;
+
 @RestController
 public class Controller {
 
@@ -71,22 +77,26 @@ public class Controller {
 
 		dbm = impl.loadDataFromDB(conn, fDate, polazna); 		// puni objekt sa vrijednostima iz baze
 		int jedinicaPolazna = dbm.getJedinica(); 				// polazna jedinica
-		float vrijednostPolazna = dbm.getIznos(); 				// vrijednost polazne valute
+		float vrijednostPolazna = Float.parseFloat(dbm.getValuta());	// vrijednost polazne valuta
 		dbm = impl.loadDataFromDB(conn, datum, odredisna);
 		int jedinicaOdredisna = dbm.getJedinica(); 				// odredisna jedinica
-		float vrijednostOdredisna = dbm.getIznos(); 			// vrijednost polazne valute
+		float vrijednostOdredisna = Float.parseFloat(dbm.getValuta());	// vrijednost polazne valute
 		mm = impl.doConversion(jedinicaPolazna, jedinicaOdredisna, vrijednostPolazna, vrijednostOdredisna, iznos); 
 																// konverzija i result message
 		conn.close();
 		return mm;
 	}
 
-	@RequestMapping(value = "/converterStatsOverall", method = RequestMethod.GET)     //
+	@RequestMapping(value = "/converterStatsOverall", method = RequestMethod.GET)     // statistika overall
 	public String getStatsOverall() {
 		Connection conn = impl.connect();
 		Statistika stat = new Statistika();
-		String statistika = stat.getMostCommonOverall(conn);
-		return statistika;
+		return stat.getMostCommonOverall(conn);
+		}
+	
+	@RequestMapping(value="/getMyJson", method=RequestMethod.GET, produces = "application/json")   // Ms. Jackson in action
+	public String getJson() {		
+		return impl.fetchJsonJackson();
+		
 	}
-
 }

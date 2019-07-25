@@ -1,5 +1,8 @@
-package com.converter;
+package com.converter.model;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class FormModel {
 
 	private String valutaP;
