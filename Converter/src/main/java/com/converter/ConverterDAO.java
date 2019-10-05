@@ -11,15 +11,12 @@ import com.converter.model.PopulateDropdownModel;
 
 public interface ConverterDAO {
 
-	public DBModel loadDataFromDB(Connection conn, String datum, String valuta) throws SQLException;
-	public Connection connect();
-	
+	//public Connection connect();
 	public HttpURLConnection urlConnect(String url);
 	public StringBuilder getHNB(String url);
-	public void tecajRazdoblje(Connection conn) throws JSONException, SQLException;
-	public void assureDate(String date, Connection conn, String datum);
-	public PopulateDropdownModel populateDropdown(Connection conn, String datum);
-	public MessageModel doConversion(int polazna, int odredisna, float polaznaVr, float odredisnaVr, float iznos);
-	String fetchJsonJackson();
-	DBModel jdbcTemplate(String datum, String valuta);
+	public void assureDate(String datum) throws JSONException;
+	public String getJsonFromHNB();
+	public String getJsonFromHNB(String date);
+
+	
 }

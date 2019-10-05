@@ -17,5 +17,9 @@ public class JsonModel {
 
 	@JsonProperty("Valuta")
 	private String valuta;
+	
+	@JsonProperty("Jedinica")
+	private String jedinica;
+
 
 }
