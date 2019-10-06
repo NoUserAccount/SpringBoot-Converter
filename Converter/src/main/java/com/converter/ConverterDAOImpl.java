@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @EnableAutoConfiguration
 public class ConverterDAOImpl implements ConverterDAO {
 
+	@SuppressWarnings("unused")
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
@@ -53,12 +54,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 			responseModified = response.replace('ž', 'z').replace("Srednji za devize", "Srednji");
 			insertHRKinJson = "{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}";
 			insertHRKinJson = ',' + insertHRKinJson;
-			if(responseModified.equals("[ ]")) {
+			if (responseModified.equals("[ ]")) {
 				responseFinal = "[{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}]";
-			}
-			else {
-			responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
-					+ responseModified.charAt(responseModified.length() - 1);
+			} else {
+				responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
+						+ responseModified.charAt(responseModified.length() - 1);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -80,7 +80,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			String year = date.substring(0, 4);
 			date = year + "-" + day + "-" + month;
 			try {
-				//assureDate(connect(),date);
+				// assureDate(connect(),date);
 				url = new URL("http://api.hnb.hr/tecajn/v1?datum=" + date);
 				ObjectMapper mapper = new ObjectMapper();
 				JsonModel[] obj = mapper.readValue(url, JsonModel[].class);
@@ -88,12 +88,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 				responseModified = response.replace('ž', 'z').replace("Srednji za devize", "Srednji");
 				insertHRKinJson = "{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}";
 				insertHRKinJson = ',' + insertHRKinJson;
-				if(responseModified.equals("[ ]")) {
+				if (responseModified.equals("[ ]")) {
 					responseFinal = "[{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}]";
-				}
-				else {
-				responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
-						+ responseModified.charAt(responseModified.length() - 1);
+				} else {
+					responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
+							+ responseModified.charAt(responseModified.length() - 1);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -114,7 +113,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		float vrijednost = 0;
 		int jedinica = 0;
 		String datumPrimjene = null;
-		String dateMod = datum.substring(8,10)+"."+datum.substring(5,7)+"."+datum.substring(0,4);
+		String dateMod = datum.substring(8, 10) + "." + datum.substring(5, 7) + "." + datum.substring(0, 4);
 
 		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
 		JSONArray arr;
@@ -123,8 +122,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-						+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-						+ "useSSL=false", "root", "ministar");
+					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
+					+ "useSSL=false", "root", "lozinka1");
 			PreparedStatement psCount = conne.prepareStatement(sqlCount);
 			psCount.setString(1, dateMod);
 			rs = psCount.executeQuery();
@@ -173,7 +172,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 	}
 
-
 	// connecting to URL passed in argument
 	@Override
 	public HttpURLConnection urlConnect(String url) {
@@ -203,7 +201,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		StringBuilder response = null;
 		InputStreamReader sr = null;
 		BufferedReader in = null;
-		
+
 		if ((con = urlConnect(url)) != null) {
 			try {
 				sr = new InputStreamReader(con.getInputStream());

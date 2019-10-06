@@ -1,13 +1,7 @@
 package com.converter;
 
 import java.net.HttpURLConnection;
-import java.sql.Connection;
-import java.sql.SQLException;
 import org.json.JSONException;
-
-import com.converter.model.DBModel;
-import com.converter.model.MessageModel;
-import com.converter.model.PopulateDropdownModel;
 
 public interface ConverterDAO {
 

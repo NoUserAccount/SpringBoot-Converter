@@ -11,14 +11,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @CrossOrigin(origins = "*")
 @RestController
 public class Controller {
 
 	@Autowired
 	ConverterService cService;
-	
+
 	ConverterDAOImpl impl = new ConverterDAOImpl();
 	Statistika stats = new Statistika();
 
@@ -36,16 +35,15 @@ public class Controller {
 	public String getStatsOverall() throws SQLException {
 		return stats.getMostCommonOverall().toString();
 	}
-	
 
 	@RequestMapping(value = "/mostCommonStartValueInterval/{interval}", method = RequestMethod.GET, produces = "application/json")
-	public @ResponseBody String  getStatsInterval(@PathVariable(value = "interval") int interval) throws SQLException {
+	public @ResponseBody String getStatsInterval(@PathVariable(value = "interval") int interval) throws SQLException {
 		return stats.getMostComonInterval(interval).toString();
 	}
-	
+
 	@RequestMapping(value = "/updateStatisticsCounter/{startValue}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String statisticUpdate(@PathVariable(value = "startValue") String value) throws ParseException, SQLException {
 		stats.updateCounter(value);
-		return value +" updated!";
+		return value + " updated!";
 	}
 }
