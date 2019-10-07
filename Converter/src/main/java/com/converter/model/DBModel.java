@@ -1,55 +1,38 @@
 package com.converter.model;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 @Component
 public class DBModel {
 
-	private String valuta;
-	private float vrijednost;
-	private int jedinica;
+	private List<String> valuta;
+	private List<Float> vrijednost;
+	private List<Integer> jedinica;
 	
-	private String valutaOdredisna;
-	private float vrijednostOdredisna;
 	
-	public float getVrijednost() {
-		return vrijednost;
-	}
-	public void setVrijednost(float vrijednost) {
-		this.vrijednost = vrijednost;
-	}
-	public float getVrijednostOdredisna() {
-		return vrijednostOdredisna;
-	}
-	public void setVrijednostOdredisna(float vrijednostOdredisna) {
-		this.vrijednostOdredisna = vrijednostOdredisna;
-	}
-	private int jedinicaOdredisna;
 	
-	public String getValuta() {
+	public List<String> getValuta() {
 		return valuta;
 	}
-	public void setValuta(String valuta) {
+	public void setValuta(List<String> valuta) {
 		this.valuta = valuta;
 	}
-	public int getJedinica() {
+	public List<Float> getVrijednost() {
+		return vrijednost;
+	}
+	public void setVrijednost(List<Float> vrijednost) {
+		this.vrijednost = vrijednost;
+	}
+	public List<Integer> getJedinica() {
 		return jedinica;
 	}
-	public void setJedinica(int jedinica) {
+	public void setJedinica(List<Integer> jedinica) {
 		this.jedinica = jedinica;
 	}
-	public String getValutaOdredisna() {
-		return valutaOdredisna;
-	}
-	public void setValutaOdredisna(String valutaOdredisna) {
-		this.valutaOdredisna = valutaOdredisna;
-	}
-	public int getJedinicaOdredisna() {
-		return jedinicaOdredisna;
-	}
-	public void setJedinicaOdredisna(int jedinicaOdredisna) {
-		this.jedinicaOdredisna = jedinicaOdredisna;
-	}
+	
+
 
 	
 }

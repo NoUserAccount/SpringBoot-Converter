@@ -10,6 +10,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.converter.model.DBModel;
 import com.converter.model.ErrorModel;
 import com.converter.model.JsonModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +40,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 	// connect() --> returning connection to database - null if fail
 	// getJsonFromHNB() --> returning JSON from HNB --- using Jackson
 	// getJsonFromHNB(String date) --> JSON from HNB by date
-	// assureDate(Connection conn, String datum)
+	// assureDate(String datum) -->  exists  ,  insert   or  error
+	// loadCurrencyFromDB(String date) --> fetch curreny response from MySQL
 
 	@Override
 	public String getJsonFromHNB() {
@@ -80,7 +85,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 			String year = date.substring(0, 4);
 			date = year + "-" + day + "-" + month;
 			try {
-				// assureDate(connect(),date);
+				if(!"error".equals(assureDate(date))){
+						responseFinal = loadCurrencyFromDB(date);
+				}
+				else {
 				url = new URL("http://api.hnb.hr/tecajn/v1?datum=" + date);
 				ObjectMapper mapper = new ObjectMapper();
 				JsonModel[] obj = mapper.readValue(url, JsonModel[].class);
@@ -94,7 +102,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 					responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
 							+ responseModified.charAt(responseModified.length() - 1);
 				}
-			} catch (IOException e) {
+				}} catch (IOException | SQLException e) {
 				e.printStackTrace();
 			}
 			return responseFinal;
@@ -103,7 +111,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	@Override
-	public void assureDate(String datum) {
+	public String assureDate(String datum) {
 		String sqlCount = "SELECT COUNT(*) FROM Valute WHERE Datum= ?";
 		String sqlUpdate = "INSERT INTO Valute (Valuta,Vrijednost,Jedinica,Datum) Values (?,?,?,?)";
 		ResultSet rs = null;
@@ -114,16 +122,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 		int jedinica = 0;
 		String datumPrimjene = null;
 		String dateMod = datum.substring(8, 10) + "." + datum.substring(5, 7) + "." + datum.substring(0, 4);
-
 		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
 		JSONArray arr;
-		Connection conne = null;
+		Connection conne = impl.connect();
 		int numOfRows = 0;
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "lozinka1");
 			PreparedStatement psCount = conne.prepareStatement(sqlCount);
 			psCount.setString(1, dateMod);
 			rs = psCount.executeQuery();
@@ -132,9 +135,16 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			if (numOfRows != 0) {
 				conne.close();
+				return "exist";
 			} else {
 				response = impl.getHNB(url);
 				arr = new JSONArray(response.toString());
+				PreparedStatement pst = conne.prepareStatement(sqlUpdate);
+				pst.setString(1, "HRK");
+				pst.setInt(2, 1);
+				pst.setFloat(3, 1);
+				pst.setString(4, dateMod);
+				pst.executeUpdate();
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
 					valuta = arr.getJSONObject(i).getString("Valuta");
@@ -142,27 +152,20 @@ public class ConverterDAOImpl implements ConverterDAO {
 							.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 					jedinica = Integer.parseInt(arr.getJSONObject(i).getString("Jedinica"));
 					try {
-						if (i == 0) {
 							PreparedStatement ps = conne.prepareStatement(sqlUpdate);
-							ps.setString(1, "HRK");
-							ps.setInt(2, 1);
-							ps.setFloat(3, 1);
+							ps.setString(1, valuta);
+							ps.setFloat(2, vrijednost);
+							ps.setInt(3, jedinica);
 							ps.setString(4, datumPrimjene);
 							ps.executeUpdate();
-						}
-						PreparedStatement ps = conne.prepareStatement(sqlUpdate);
-						ps.setString(1, valuta);
-						ps.setFloat(2, vrijednost);
-						ps.setInt(3, jedinica);
-						ps.setString(4, datumPrimjene);
-						ps.executeUpdate();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
 				}
 				conne.close();
+				return "insert";
 			}
-		} catch (SQLException | JSONException | ClassNotFoundException e1) {
+		} catch (SQLException | JSONException e1) {
 			try {
 				conne.close();
 			} catch (SQLException e) {
@@ -170,6 +173,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			e1.printStackTrace();
 		}
+		return "error";
 	}
 
 	// connecting to URL passed in argument
@@ -218,21 +222,48 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 		return response;
 	}
+	
+	@Override
+	public String loadCurrencyFromDB(String date) throws SQLException {
+		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
+		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost FROM Valute WHERE Datum= ?";
+		Connection conne = connect();
+		DBModel db = new DBModel();
+		List<String> currencyList = new ArrayList<>();
+		List<Float> valuesList = new ArrayList<>();
+		List<Integer> unitsList = new ArrayList<>();
+		ResultSet rs = null;
+		PreparedStatement ps = conne.prepareStatement(sqlSelect);
+		ps.setString(1, dateMod);
+		rs = ps.executeQuery();
+		while (rs.next()) {
+			currencyList.add(rs.getString(1));
+			unitsList.add(rs.getInt(2));
+			valuesList.add(rs.getFloat(3));
+		}
+		conne.close();
+		
+		String response = "[";
+		for(int i = 0; i < currencyList.size(); i++) {    // proizvodnja JSON-a na zagorski način
+			response += "{\"Srednji\" : \""+valuesList.get(i)+"\",\n\"Valuta\":\""+currencyList.get(i)+"\",\n\"Jedinica\" : \""+unitsList.get(i)+"\"},\n";
+		}
+		response = response.substring(0, response.length() - 2) + "]";
+		return response;		
+	}
+	
+	@Override
+	public Connection connect() {
+		Connection conne = null;
+		try {
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
+					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
+					+ "useSSL=false", "root", "lozinka1");
+			return conne;
 
-// connect().close() not working 	
-//	@Override
-//	public Connection connect() {
-//		Connection conne = null;
-//		try {
-//			Class.forName("com.mysql.cj.jdbc.Driver");
-//			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-//					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-//					+ "useSSL=false", "root", "ministar");
-//			return conne;
-//
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		return null;
-//	}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 }

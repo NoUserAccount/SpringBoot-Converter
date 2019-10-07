@@ -1,7 +1,6 @@
 package com.converter;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,22 +25,17 @@ public class Statistika {
 		SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy");
 		java.util.Date dateStr = format.parse(time);
 		java.sql.Date dateDB = new java.sql.Date(dateStr.getTime());
-		Connection conne = null;
-		String sql = "INSERT INTO DailyStats (Valuta,Datum,Counter)\n" + "VALUES(?,?,?)\n" + // primary key(Valuta,
-																								// Datum)
+		Connection conne = impl.connect();
+		String sql = "INSERT INTO DailyStats (Valuta,Datum,Counter) VALUES(?,?,?)" + // primary key(Valuta,Datum)																				
 				"ON DUPLICATE KEY UPDATE Counter = Counter + 1;";
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "lozinka1");
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setString(1, polaznaValuta);
 			ps.setDate(2, dateDB);
 			ps.setString(3, "1");
 			ps.execute();
 			conne.close();
-		} catch (SQLException | ClassNotFoundException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			if (conne != null) {
@@ -55,12 +49,8 @@ public class Statistika {
 		String result = "";
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
-		Connection conne = null;
+		Connection conne = impl.connect();
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "lozinka1");
 			ResultSet rs = null;
 			rs = conne.createStatement().executeQuery(sql);
 			while (rs.next()) {
@@ -69,7 +59,7 @@ public class Statistika {
 			output.put("value", result);
 			array.put(output);
 			conne.close();
-		} catch (SQLException | JSONException | ClassNotFoundException e1) {
+		} catch (SQLException | JSONException e1) {
 			e1.printStackTrace();
 		} finally {
 			if (conne != null) {
@@ -85,12 +75,8 @@ public class Statistika {
 		String result = "";
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
-		Connection conne = null;
+		Connection conne = impl.connect();
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&"
-					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "lozinka1");
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setInt(1, interval);
 			rs = ps.executeQuery();
@@ -100,7 +86,7 @@ public class Statistika {
 			output.put("value", result);
 			array.put(output);
 			conne.close();
-		} catch (SQLException | JSONException | ClassNotFoundException e) {
+		} catch (SQLException | JSONException e) {
 			e.printStackTrace();
 		} finally {
 			if (conne != null) {

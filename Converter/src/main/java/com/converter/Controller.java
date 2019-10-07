@@ -17,33 +17,32 @@ public class Controller {
 
 	@Autowired
 	ConverterService cService;
-
-	ConverterDAOImpl impl = new ConverterDAOImpl();
-	Statistika stats = new Statistika();
+	Statistika stat = new Statistika();
 
 	@RequestMapping(value = "/jsonOnInit", method = RequestMethod.GET, produces = "application/json")
 	public String getJson() {
-		return impl.getJsonFromHNB();
+		return cService.getJsonFromHNB();
 	}
 
 	@RequestMapping(value = "/jsonByDate/{date}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String jsonByDate(@PathVariable(value = "date") String date) {
-		return impl.getJsonFromHNB(date);
+		return cService.getJsonFromHNB(date);
 	}
 
-	@RequestMapping(value = "/mostCommonStartValue", method = RequestMethod.GET)
+	@RequestMapping(value = "/mostCommonStartValue", method = RequestMethod.GET, produces = "application/json")
 	public String getStatsOverall() throws SQLException {
-		return stats.getMostCommonOverall().toString();
+		return cService.getMostCommonOverall().toString();
 	}
 
 	@RequestMapping(value = "/mostCommonStartValueInterval/{interval}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String getStatsInterval(@PathVariable(value = "interval") int interval) throws SQLException {
-		return stats.getMostComonInterval(interval).toString();
+		return cService.getMostComonInterval(interval).toString();
 	}
 
-	@RequestMapping(value = "/updateStatisticsCounter/{startValue}", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/updateStatisticsCounter/{startValue}", method = RequestMethod.GET)
 	public @ResponseBody String statisticUpdate(@PathVariable(value = "startValue") String value) throws ParseException, SQLException {
-		stats.updateCounter(value);
+		stat.updateCounter(value);
 		return value + " updated!";
 	}
+	
 }
