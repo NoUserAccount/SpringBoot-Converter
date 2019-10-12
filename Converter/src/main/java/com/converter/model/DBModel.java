@@ -10,9 +10,16 @@ public class DBModel {
 	private List<String> valuta;
 	private List<Float> vrijednost;
 	private List<Integer> jedinica;
+	private List<String> drzava;
 	
 	
 	
+	public List<String> getDrzava() {
+		return drzava;
+	}
+	public void setDrzava(List<String> drzava) {
+		this.drzava = drzava;
+	}
 	public List<String> getValuta() {
 		return valuta;
 	}

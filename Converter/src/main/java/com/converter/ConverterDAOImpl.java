@@ -23,11 +23,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import com.converter.model.ErrorModel;
-import com.converter.model.FormModel;
+import com.converter.model.DBModel;
 import com.converter.model.JsonModel;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -174,7 +171,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 	public HttpURLConnection urlConnect(String url) {
 		URL obj = null;
 		HttpURLConnection con = null;
-		ErrorModel em = new ErrorModel();
 		boolean ok = false;
 		try {
 			obj = new URL(url);
@@ -184,7 +180,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			em.setErrorMessage("Nije moguće uspostaviti http konekciju!");
 		}
 		if (!ok)
 			return null;
@@ -231,6 +226,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
+		DBModel db = new DBModel();
 		List<String> currencyList = new ArrayList<>();
 		List<Float> valuesList = new ArrayList<>();
 		List<Integer> unitsList = new ArrayList<>();
