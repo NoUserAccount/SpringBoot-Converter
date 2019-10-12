@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,6 +20,7 @@ public class Statistika {
 	ConverterDAOImpl impl = new ConverterDAOImpl();
 
 	public void updateCounter(String polaznaValuta) throws ParseException, SQLException {
+		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Zagreb"));
 		Date date = new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 		String time = sdf.format(date);
