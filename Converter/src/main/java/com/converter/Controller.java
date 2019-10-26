@@ -29,6 +29,11 @@ public class Controller {
 	public String getJson() {
 		return cService.getJsonFromHNB();
 	}
+	
+	@RequestMapping(value = "/weatherOnDemand", method = RequestMethod.GET, produces = "application/json")
+	public String getWeather() {
+		return cService.getWeather();
+	}
 
 	@RequestMapping(value = "/jsonByDate/{date}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String jsonByDate(@PathVariable(value = "date") String date) throws SQLException, JsonParseException, JsonMappingException, IOException {

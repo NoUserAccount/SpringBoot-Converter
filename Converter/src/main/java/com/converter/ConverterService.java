@@ -68,6 +68,10 @@ public class ConverterService {
 	public String getMessages() throws SQLException {
 		return cDao.getMessages();
 	}
+
+	public String getWeather() {
+		return cDao.getWeather();
+	}
 	
 }
 

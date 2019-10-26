@@ -3,6 +3,7 @@ package com.converter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
@@ -17,17 +18,21 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import com.converter.model.DBModel;
 import com.converter.model.JsonModel;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+
+import org.json.XML;
 
 @Repository
 @ComponentScan(basePackages = "com.converter")
@@ -137,7 +142,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 					valuta = arr.getJSONObject(i).getString("Valuta");
 					vrijednost = Float
 							.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
-					jedinica = Integer.parseInt(arr.getJSONObject(i).getString("Jedinica"));
+					jedinica = arr.getJSONObject(i).getInt("Jedinica");
 					drzava = arr.getJSONObject(i).getString("Država");
 					try {
 						PreparedStatement ps = conne.prepareStatement(sqlUpdate);
@@ -226,7 +231,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
-		DBModel db = new DBModel();
 		List<String> currencyList = new ArrayList<>();
 		List<Float> valuesList = new ArrayList<>();
 		List<Integer> unitsList = new ArrayList<>();
@@ -260,7 +264,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/CurrencyConverter?useUnicode=true&"
 					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "lozinka1");
+					+ "useSSL=false", "root", "root");
 			return conne;
 		} catch (Exception e) {
 			System.out.println("Konekcija na bazu nije uspostavljena!");
@@ -352,5 +356,46 @@ public class ConverterDAOImpl implements ConverterDAO {
 		response = response.substring(0, response.length() - 2) + "]";
 		return response;	
 		}
+
+	@Override
+	public String getWeather() {
+	String url ="https://vrijeme.hr/hrvatska1_n.xml";
+			HttpURLConnection con = null;
+			String inputLine = "";
+			StringBuilder response = null;
+			InputStreamReader sr = null;
+			BufferedReader in = null;
+			String jsonPrettyPrintString = null;
+			int PRETTY_PRINT_INDENT_FACTOR = 4;
+			if ((con = urlConnect(url)) != null) {
+				try {
+					sr = new InputStreamReader(con.getInputStream());
+					in = new BufferedReader(sr);
+					response = new StringBuilder();
+					while ((inputLine = in.readLine()) != null) {
+						response.append(inputLine);
+					}
+					sr.close();
+					in.close();
+					JSONObject xmlJSONObj = XML.toJSONObject(response.toString());
+		            jsonPrettyPrintString = xmlJSONObj.toString(PRETTY_PRINT_INDENT_FACTOR);
+		            JSONObject obj = new JSONObject(new JSONTokener(new StringReader(jsonPrettyPrintString)));
+					ObjectMapper mapper = new ObjectMapper();
+					JsonNode rootNode = mapper.readTree(obj.toString());
+					if (rootNode.iterator().next().get("Grad").isArray()) {
+					    for (final JsonNode objNode : rootNode.iterator().next().get("Grad")) {
+							JSONObject podatci = new JSONObject();
+							podatci = new JSONObject(objNode.get("Podatci").toString());
+							if (objNode.get("Podatci").isObject()) {
+							        System.out.println(objNode.get("GradIme")+"\t\t\t\t"+podatci.get("Tlak").toString() +"hPa\t"+podatci.getFloat("Temp")+"\t"+   podatci.getString("VjetarSmjer") +"\t"+ podatci.getInt("Vlaga"));
+							}
+					    }
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return "OK";
+	}
 
 }

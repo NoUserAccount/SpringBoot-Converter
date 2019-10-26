@@ -24,5 +24,6 @@ public interface ConverterDAO {
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException;
 	public JSONArray login(String user, String psw) throws SQLException, JSONException;
 	public String getMessages() throws SQLException;
+	public String getWeather();
 	
 }
