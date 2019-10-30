@@ -1,10 +1,12 @@
 package com.converter;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,7 +32,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CityResponse;
 
 import org.json.XML;
 
@@ -82,8 +86,15 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@Override
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
 		Validacije val = new Validacije();
+		String responseFinal = "";
+		JSONObject output = new JSONObject();
+		JSONArray array = new JSONArray();
+		output.put("Srednji", 1);
+		output.put("Drzava", "Hrvatska");
+		output.put("Valuta", "HRK");
+		output.put("Jedinica", 1);
+		array.put(output);
 		if (val.validacijaDatuma(date)) {
-			String responseFinal = "";
 			String day = date.substring(5, 7);
 			String month = date.substring(8, 10);
 			String year = date.substring(0, 4);
@@ -91,10 +102,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 			if ("ok".equals(assureDate(date))) {
 				responseFinal = loadCurrencyFromDB(date);
 				System.out.println("Tečaj učitan iz baze!");
+				return responseFinal;
+			}else {
+				return array.toString();
 			}
-			return responseFinal;
-		} else
-			return null;
+		}
+		else {
+			return array.toString();
+		}
 	}
 
 	@Override
@@ -231,30 +246,21 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
-		List<String> currencyList = new ArrayList<>();
-		List<Float> valuesList = new ArrayList<>();
-		List<Integer> unitsList = new ArrayList<>();
-		List<String> countryList = new ArrayList<>();
 		ResultSet rs = null;
 		PreparedStatement ps = conne.prepareStatement(sqlSelect);
 		ps.setString(1, dateMod);
 		rs = ps.executeQuery();
+		JSONArray array = new JSONArray();
 		while (rs.next()) {
-			currencyList.add(rs.getString(1));
-			unitsList.add(rs.getInt(2));
-			valuesList.add(rs.getFloat(3));
-			countryList.add(rs.getString(4));
+			JSONObject output = new JSONObject();
+			output.put("Srednji", rs.getFloat(3));
+			output.put("Drzava", rs.getString(4));
+			output.put("Valuta", rs.getString(1));
+			output.put("Jedinica", rs.getInt(2));
+			array.put(output);
 		}
 		conne.close();
-
-		String response = "[";
-		for (int i = 0; i < currencyList.size(); i++) { // proizvodnja JSON-a na zagorski način
-			response += "{\"Srednji\" : \"" + valuesList.get(i) + "\",\n\"Valuta\":\"" + currencyList.get(i)
-					+ "\",\n\"Drzava\" : \"" + countryList.get(i) + "\",\n\"Jedinica\" : \"" + unitsList.get(i)
-					+ "\"},\n";
-		}
-		response = response.substring(0, response.length() - 2) + "]";
-		return response;
+		return array.toString();
 	}
 
 	@Override
@@ -277,6 +283,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException {
 		Connection conne = connect();
 		String sql = "INSERT INTO Contacts (Name,Surname,Contact,Message) VALUES(?,?,?,?)";
+		EmailService es = new EmailService();
 		try {
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setString(1, name);
@@ -293,6 +300,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 			}
 		}
+		//es.emailClient("Ime:" + name +" "+ surname + "\n"+ message+"\n\n "+contact);
 		return "Message sent!";
 	}
 
@@ -334,28 +342,19 @@ public class ConverterDAOImpl implements ConverterDAO {
 	public String getMessages() throws SQLException {
 		String sqlSelect = "SELECT Name, Surname, Contact, Message FROM Contacts";
 		Connection conne = connect();
-		List<String> nameList = new ArrayList<>();
-		List<String> surnameList = new ArrayList<>();
-		List<String> contactList = new ArrayList<>();
-		List<String> messageList = new ArrayList<>();
-		ResultSet st = conne.createStatement().executeQuery(sqlSelect);
-		while (st.next()) {
-			nameList.add(st.getString(1));
-			surnameList.add(st.getString(2));
-			contactList.add(st.getString(3));
-			messageList.add(st.getString(4));
+		ResultSet rs = conne.createStatement().executeQuery(sqlSelect);
+		JSONArray array = new JSONArray();
+		while (rs.next()) {
+			JSONObject output = new JSONObject();
+			output.put("Ime", rs.getString(1));
+			output.put("Prezime", rs.getString(2));
+			output.put("Contact", rs.getString(3));
+			output.put("Message", rs.getString(4));
+			array.put(output);
 		}
 		conne.close();
-
-		String response = "[";
-		for (int i = 0; i < nameList.size(); i++) { // proizvodnja JSON-a na zagorski način
-			response += "{\"Ime\" : \"" + nameList.get(i) + "\",\n\"Prezime\":\"" + surnameList.get(i)
-					+ "\",\n\"Contact\" : \"" + contactList.get(i) + "\",\n\"Message\" : \"" + messageList.get(i)
-					+ "\"},\n";
-		}
-		response = response.substring(0, response.length() - 2) + "]";
-		return response;	
-		}
+	return array.toString();	
+	}
 
 	@Override
 	public String getWeather() {
@@ -366,6 +365,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			InputStreamReader sr = null;
 			BufferedReader in = null;
 			String jsonPrettyPrintString = null;
+			JSONArray array = new JSONArray();
 			int PRETTY_PRINT_INDENT_FACTOR = 4;
 			if ((con = urlConnect(url)) != null) {
 				try {
@@ -387,7 +387,16 @@ public class ConverterDAOImpl implements ConverterDAO {
 							JSONObject podatci = new JSONObject();
 							podatci = new JSONObject(objNode.get("Podatci").toString());
 							if (objNode.get("Podatci").isObject()) {
-							        System.out.println(objNode.get("GradIme")+"\t\t\t\t"+podatci.get("Tlak").toString() +"hPa\t"+podatci.getFloat("Temp")+"\t"+   podatci.getString("VjetarSmjer") +"\t"+ podatci.getInt("Vlaga"));
+							        String grad = objNode.get("GradIme").toString().substring(1, objNode.get("GradIme").toString().length()-1);
+									JSONObject output = new JSONObject();
+							        output.put("Grad", grad);
+							        output.put("Temperatura", podatci.get("Temp").toString());
+							        output.put("Tlak", podatci.get("Tlak").toString());
+							        output.put("TlakTend", podatci.get("TlakTend").toString());
+							        output.put("VjetarSmjer", podatci.get("VjetarSmjer").toString());
+							        output.put("VjetarBrzina", podatci.get("VjetarBrzina").toString());
+							        output.put("Vrijeme", podatci.get("Vrijeme").toString());
+							        array.put(output);
 							}
 					    }
 					}
@@ -395,7 +404,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 					e.printStackTrace();
 				}
 			}
-			return "OK";
+			return array.toString();
 	}
-
 }
