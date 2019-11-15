@@ -3,7 +3,12 @@ package com.converter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -14,7 +19,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.converter.jpa.Currency;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -81,5 +89,27 @@ public class Controller {
 	@RequestMapping(value = "/getMessages", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String getMessages() throws SQLException {
 		return cService.getMessages();
+	}
+	
+	
+	@RequestMapping(value = "/jpa", method = RequestMethod.GET, produces = "application/json")
+	public String jpaTest() throws JsonProcessingException {
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
+        EntityManager em = emf.createEntityManager();
+        String datum = "14.11.2019";
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = em.createQuery("SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= :date").setParameter("date", datum).getResultList();
+        List<Currency> currencyes = new ArrayList<>(objects.size());
+        for(Object[] obj: objects) {
+        	currencyes.add(new Currency((String) obj[0], (Integer) obj[1], (float) obj[2], (String) obj[3]));
+        }
+        String jsonArray = null;
+        ObjectMapper mapper = new ObjectMapper();
+        jsonArray = mapper.writeValueAsString(currencyes)
+        		.replaceAll("vrijednost", "Srednji")
+        		.replaceAll("drzava", "Drzava")
+        		.replaceAll("jedinica", "Jedinica")
+        		.replaceAll("valuta", "Valuta");
+		return jsonArray;
 	}
 }

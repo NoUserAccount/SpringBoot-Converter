@@ -13,7 +13,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
+@Repository
 @Component
 public class Statistika {
 

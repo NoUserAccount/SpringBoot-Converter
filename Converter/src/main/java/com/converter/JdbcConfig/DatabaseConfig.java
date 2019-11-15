@@ -12,10 +12,11 @@ public class DatabaseConfig {
    public DataSource dataSource(){
       DriverManagerDataSource dataSource = new DriverManagerDataSource();
       dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-      dataSource.setUrl("jdbc:mysql://localhost:3306/Imenik?useUnicode=true&\"useJDBCCompliantTimezoneShift=true&useLegac"
-      		+ "yDatetimeCode=false&serverTimezone=UTC&useSSL=false");
+      dataSource.setUrl("jdbc:mysql://localhost:3306/currencyconverter?useUnicode=true&\"\n" + 
+      		"					+ \"useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&\"\n" + 
+      		"					+ \"useSSL=false");
       dataSource.setUsername( "root" );
-      dataSource.setPassword( "ministar" );
+      dataSource.setPassword( "root" );
       return dataSource;
    }
 }

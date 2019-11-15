@@ -1,12 +1,10 @@
 package com.converter;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,6 +14,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,15 +29,13 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.converter.jpa.Currency;
 import com.converter.model.JsonModel;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maxmind.geoip2.DatabaseReader;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.CityResponse;
-
 import org.json.XML;
 
 @Repository
@@ -46,6 +46,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@SuppressWarnings("unused")
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	
+	EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
+    EntityManager em = emf.createEntityManager();
 
 	// urlConnect(String url) --> connecting to url passed in argument
 	// getHNB(String url) --> returning json response from url, HNB API
@@ -244,23 +248,42 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@Override
 	public String loadCurrencyFromDB(String date) throws SQLException {
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
-		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
-		Connection conne = connect();
-		ResultSet rs = null;
-		PreparedStatement ps = conne.prepareStatement(sqlSelect);
-		ps.setString(1, dateMod);
-		rs = ps.executeQuery();
-		JSONArray array = new JSONArray();
-		while (rs.next()) {
-			JSONObject output = new JSONObject();
-			output.put("Srednji", rs.getFloat(3));
-			output.put("Drzava", rs.getString(4));
-			output.put("Valuta", rs.getString(1));
-			output.put("Jedinica", rs.getInt(2));
-			array.put(output);
+//		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
+//		Connection conne = connect();
+//		ResultSet rs = null;
+//		PreparedStatement ps = conne.prepareStatement(sqlSelect);
+//		ps.setString(1, dateMod);
+//		rs = ps.executeQuery();
+//		JSONArray array = new JSONArray();
+//		while (rs.next()) {
+//			JSONObject output = new JSONObject();
+//			output.put("Srednji", rs.getFloat(3));
+//			output.put("Drzava", rs.getString(4));
+//			output.put("Valuta", rs.getString(1));
+//			output.put("Jedinica", rs.getInt(2));
+//			array.put(output);
+//		}
+//		conne.close();
+//		return array.toString();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = em.createQuery("SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= :date").setParameter("date", dateMod).getResultList();
+        List<Currency> currencyes = new ArrayList<>(objects.size());
+        for(Object[] obj: objects) {
+        	currencyes.add(new Currency((String) obj[0], (Integer) obj[1], (float) obj[2], (String) obj[3]));
+        }
+        String jsonArray = null;
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+			jsonArray = mapper.writeValueAsString(currencyes)
+					.replaceAll("vrijednost", "Srednji")
+					.replaceAll("drzava", "Drzava")
+					.replaceAll("jedinica", "Jedinica")
+					.replaceAll("valuta", "Valuta");
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		conne.close();
-		return array.toString();
+		return jsonArray;
 	}
 
 	@Override
@@ -283,7 +306,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException {
 		Connection conne = connect();
 		String sql = "INSERT INTO Contacts (Name,Surname,Contact,Message) VALUES(?,?,?,?)";
-		EmailService es = new EmailService();
+		//EmailService es = new EmailService();
 		try {
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setString(1, name);
