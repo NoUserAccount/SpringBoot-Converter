@@ -47,10 +47,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
-	
-	EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
-    EntityManager em = emf.createEntityManager();
-
 	// urlConnect(String url) --> connecting to url passed in argument
 	// getHNB(String url) --> returning json response from url, HNB API
 	// connect() --> returning connection to database - null if fail
@@ -99,10 +95,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		output.put("Jedinica", 1);
 		array.put(output);
 		if (val.validacijaDatuma(date)) {
-			String day = date.substring(5, 7);
-			String month = date.substring(8, 10);
-			String year = date.substring(0, 4);
-			date = year + "-" + day + "-" + month;
 			if ("ok".equals(assureDate(date))) {
 				responseFinal = loadCurrencyFromDB(date);
 				System.out.println("Tečaj učitan iz baze!");
@@ -246,52 +238,55 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	@Override
-	public String loadCurrencyFromDB(String date) throws SQLException {
+	public String loadCurrencyFromDB(String date) throws SQLException, JsonProcessingException {
+		String jsonArray = null;
+        ObjectMapper mapper = new ObjectMapper();
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
-//		String sqlSelect = "SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= ?";
-//		Connection conne = connect();
-//		ResultSet rs = null;
-//		PreparedStatement ps = conne.prepareStatement(sqlSelect);
-//		ps.setString(1, dateMod);
-//		rs = ps.executeQuery();
-//		JSONArray array = new JSONArray();
-//		while (rs.next()) {
-//			JSONObject output = new JSONObject();
-//			output.put("Srednji", rs.getFloat(3));
-//			output.put("Drzava", rs.getString(4));
-//			output.put("Valuta", rs.getString(1));
-//			output.put("Jedinica", rs.getInt(2));
-//			array.put(output);
-//		}
-//		conne.close();
-//		return array.toString();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
+	    EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
-		List<Object[]> objects = em.createQuery("SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= :date").setParameter("date", dateMod).getResultList();
+		List<Object[]> objects = manager.createQuery("SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= :date")
+			.setParameter("date", dateMod).getResultList();
         List<Currency> currencyes = new ArrayList<>(objects.size());
         for(Object[] obj: objects) {
         	currencyes.add(new Currency((String) obj[0], (Integer) obj[1], (float) obj[2], (String) obj[3]));
         }
-        String jsonArray = null;
-        ObjectMapper mapper = new ObjectMapper();
-        try {
 			jsonArray = mapper.writeValueAsString(currencyes)
 					.replaceAll("vrijednost", "Srednji")
 					.replaceAll("drzava", "Drzava")
 					.replaceAll("jedinica", "Jedinica")
 					.replaceAll("valuta", "Valuta");
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		manager.close();
+		emf.close();
 		return jsonArray;
 	}
 
 	@Override
+	public String getChartData(String date) throws SQLException {
+		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
+		String sqlSelect = "SELECT Jedinica, Vrijednost, Valuta FROM Currency WHERE Datum= ?";
+		Connection conne = connect();
+		ResultSet rs = null;
+		PreparedStatement ps = conne.prepareStatement(sqlSelect);
+		ps.setString(1, dateMod);
+		rs = ps.executeQuery();
+		JSONArray array = new JSONArray();
+		while (rs.next()) {
+			JSONObject output = new JSONObject();
+			output.put("Srednji", rs.getFloat(2)/rs.getInt(1));
+			output.put("Valuta", rs.getString(3));
+			array.put(output);
+		}
+		conne.close();
+		return array.toString();
+	}	
+	
+	@Override
 	public Connection connect() {
 		Connection conne = null;
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/CurrencyConverter?useUnicode=true&"
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/currencyConverter?useUnicode=true&"
 					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
 					+ "useSSL=false", "root", "root");
 			return conne;

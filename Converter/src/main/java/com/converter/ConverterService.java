@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 @Service
@@ -21,7 +22,7 @@ public class ConverterService {
 	@Autowired
 	public Statistika stats;
 
-	public String loadCurrencyFromDB(String date) throws SQLException {
+	public String loadCurrencyFromDB(String date) throws SQLException, JsonProcessingException {
 		return cDao.loadCurrencyFromDB(date);
 	}
 	
@@ -57,6 +58,10 @@ public class ConverterService {
 		return stats.getMostComonInterval(interval);
 	}
 	
+	public String getIntervalStats(int interval, String valuta) throws JsonProcessingException, SQLException {
+		return stats.getIntervalStats(interval, valuta);
+	}
+	
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException {
 		return cDao.contactInfo(name, surname, contact, message);
 	}
@@ -71,6 +76,10 @@ public class ConverterService {
 
 	public String getWeather() {
 		return cDao.getWeather();
+	}
+
+	public String getChartData(String date) throws SQLException {
+		return cDao.getChartData(date);
 	}
 	
 }

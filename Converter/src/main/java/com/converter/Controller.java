@@ -3,6 +3,7 @@ package com.converter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,11 @@ public class Controller {
 	public @ResponseBody String jsonByDate(@PathVariable(value = "date") String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
 		return cService.getCurrency(date);
 	}
+	
+	@RequestMapping(value = "/getChartData/{date}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getForChart(@PathVariable(value = "date") String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
+		return cService.getChartData(date);
+	}
 
 	@RequestMapping(value = "/mostCommonStartValue", method = RequestMethod.GET, produces = "application/json")
 	public String getStatsOverall() throws SQLException {
@@ -62,6 +68,12 @@ public class Controller {
 	public @ResponseBody String statisticUpdate(@PathVariable(value = "startValue") String value) throws ParseException, SQLException {
 		stat.updateCounter(value);
 		return value + " updated!";
+	}
+	
+	@RequestMapping(value = "/currencyUsage/{interval}/{valuta}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getCurrencyUsage(@PathVariable(value = "interval") int interval,
+												 @PathVariable(value = "valuta" ) String valuta	) throws SQLException, JsonProcessingException {
+		return cService.getIntervalStats(interval, valuta);
 	}
 	
 	@RequestMapping(value = "/assureDate/{date}", method = RequestMethod.GET, produces = "application/json")
@@ -105,11 +117,16 @@ public class Controller {
         }
         String jsonArray = null;
         ObjectMapper mapper = new ObjectMapper();
-        jsonArray = mapper.writeValueAsString(currencyes)
-        		.replaceAll("vrijednost", "Srednji")
-        		.replaceAll("drzava", "Drzava")
-        		.replaceAll("jedinica", "Jedinica")
-        		.replaceAll("valuta", "Valuta");
+        jsonArray = mapper.writeValueAsString(currencyes);
+        em.clear();
+        em.close();
+        emf.close();
 		return jsonArray;
+	}	
+	
+	@RequestMapping(value = "/test1", method = RequestMethod.GET, produces = "application/json")
+	public String jpaTeswt(){
+		LocalDate date = LocalDate.now().minusDays(4);
+		return date.toString();
 	}
 }
