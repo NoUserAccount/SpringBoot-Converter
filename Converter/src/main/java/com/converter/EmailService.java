@@ -3,14 +3,14 @@ package com.converter;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+
 import java.util.Properties;
 
 public class EmailService {
-
-
-    public void emailClient(String EMAIL_TEXT) {
-
-    	final String username = "";
+	
+    public void emailClient(String EMAIL_TEXT)  {
+    	
+    	final String username = "zoran.bajcer@gmail.com";
         final String password = "";
 
         Properties prop = new Properties();
@@ -26,9 +26,7 @@ public class EmailService {
                         return new PasswordAuthentication(username, password);
                     }
                 });
-
         try {
-
             Message message = new MimeMessage(session);
             message.setFrom(new InternetAddress("zoran.bajcer@gmail.com"));
             message.setRecipients(
@@ -40,10 +38,10 @@ public class EmailService {
 
             Transport.send(message);
 
-            System.out.println("Done");
+            System.out.println("Poslano!");
 
         } catch (MessagingException e) {
-            e.printStackTrace();
+        		System.out.println("Unauthorized!");
         }
     }
 

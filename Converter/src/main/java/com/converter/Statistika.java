@@ -33,7 +33,7 @@ public class Statistika {
 	ConverterDAOImpl impl = new ConverterDAOImpl();
 	
 	public void updateCounter(String polaznaValuta) throws ParseException, SQLException {
-		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Zagreb"));
+		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		Date date = new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 		String time = sdf.format(date);

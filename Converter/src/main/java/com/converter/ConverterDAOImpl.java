@@ -12,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,6 +99,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			if ("ok".equals(assureDate(date))) {
 				responseFinal = loadCurrencyFromDB(date);
 				System.out.println("Tečaj učitan iz baze!");
+				LocalDateTime localDate = LocalDateTime.now();
+				System.out.println("assure date over at "+localDate);
 				return responseFinal;
 			}else {
 				return array.toString();
@@ -136,7 +139,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 				return "ok";
 			} else {
-				response = impl.getHNB(url);
+				response = impl.getURL(url);
 				if ("[]".equals(response.toString())) {
 					return "wrong date";
 				}
@@ -203,7 +206,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	@Override
-	public StringBuilder getHNB(String url) {
+	public StringBuilder getURL(String url) {
 		HttpURLConnection con = null;
 		String inputLine = "";
 		StringBuilder response = null;
@@ -263,6 +266,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getChartData(String date) throws SQLException {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		LocalDateTime localDate = LocalDateTime.now();
+		System.out.println("get chart data starts at "+localDate);
+		
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Jedinica, Vrijednost, Valuta FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
@@ -301,7 +312,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException {
 		Connection conne = connect();
 		String sql = "INSERT INTO Contacts (Name,Surname,Contact,Message) VALUES(?,?,?,?)";
-		//EmailService es = new EmailService();
+		EmailService es = new EmailService();
 		try {
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setString(1, name);
@@ -318,7 +329,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 			}
 		}
-		//es.emailClient("Ime:" + name +" "+ surname + "\n"+ message+"\n\n "+contact);
+		es.emailClient("Pošiljatelj:" + name +" "+ surname + " ("+contact+") "+"\n\n\n"+ message+"\n\n ");
 		return "Message sent!";
 	}
 
@@ -423,5 +434,40 @@ public class ConverterDAOImpl implements ConverterDAO {
 				}
 			}
 			return array.toString();
+	}
+
+	@Override
+	public String getWeatherStatus(String grad) {
+		JSONObject obj;
+		String city = grad.replace(" ", "%20");
+		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query=" + city;
+		String response; 
+		JSONObject output = new JSONObject();
+		JSONArray array = new JSONArray();
+
+		if((response = getURL(url).toString()) != null) {
+			obj = new JSONObject(response.toString());
+			JSONObject request = obj.getJSONObject("request");
+			JSONObject location = obj.getJSONObject("location");
+			JSONObject current = obj.getJSONObject("current");
+				output.put("query", request.getString("query"));
+				output.put("region", location.getString("region"));
+				output.put("observation_time", current.getString("observation_time"));
+				output.put("temperature", current.get("temperature").toString());
+				output.put("description", current.getJSONArray("weather_descriptions").getString(0));
+				output.put("weather_icon", current.getJSONArray("weather_icons").getString(0));
+				output.put("wind_speed", current.get("wind_speed").toString());
+				output.put("wind_direction", current.get("wind_dir").toString());
+				output.put("pressure", current.get("pressure").toString());
+		    	output.put("precipitation", current.get("precip").toString());
+				output.put("humidity", current.get("humidity").toString());
+		    	output.put("cloudcover", current.get("cloudcover").toString());
+		    	output.put("feelslike", current.get("feelslike").toString());
+		    	output.put("uv_index", current.get("uv_index").toString());
+		    	output.put("visibility", current.get("visibility").toString());
+		    	output.put("isDay", current.get("is_day").toString());
+		    array.put(output);				
+		}
+		return array.toString();
 	}
 }

@@ -35,7 +35,7 @@ public class ConverterService {
 	}
 	
 	public StringBuilder getHNB(String url) throws JsonParseException, JsonMappingException, IOException {
-		return cDao.getHNB(url);
+		return cDao.getURL(url);
 	}
 	
 	public String assureDate(String datum) throws JSONException, JsonParseException, JsonMappingException, IOException{
@@ -80,6 +80,10 @@ public class ConverterService {
 
 	public String getChartData(String date) throws SQLException {
 		return cDao.getChartData(date);
+	}
+
+	public String getWeatherStatus(String grad) {
+		return cDao.getWeatherStatus(grad);
 	}
 	
 }

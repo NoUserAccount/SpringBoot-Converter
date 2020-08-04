@@ -16,7 +16,7 @@ public interface ConverterDAO {
 
 	public Connection connect();
 	public HttpURLConnection urlConnect(String url);
-	public StringBuilder getHNB(String url) throws JsonParseException, JsonMappingException, IOException;
+	public StringBuilder getURL(String url) throws JsonParseException, JsonMappingException, IOException;
 	public String assureDate(String datum) throws JSONException, JsonParseException, JsonMappingException, IOException;
 	public String getJsonFromHNB();
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException;
@@ -27,5 +27,6 @@ public interface ConverterDAO {
 	public String getMessages() throws SQLException;
 	public String getWeather();
 	public String getChartData(String datum) throws SQLException;
+	public String getWeatherStatus(String grad);
 	
 }

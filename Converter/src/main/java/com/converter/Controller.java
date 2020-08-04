@@ -1,19 +1,24 @@
 package com.converter;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -36,6 +41,7 @@ public class Controller {
 	
 	@RequestMapping(value = "/jsonOnInit", method = RequestMethod.GET, produces = "application/json")
 	public String getJson() {
+		System.out.println("radim li išta?");
 		return cService.getJsonFromHNB();
 	}
 	
@@ -124,9 +130,10 @@ public class Controller {
 		return jsonArray;
 	}	
 	
-	@RequestMapping(value = "/test1", method = RequestMethod.GET, produces = "application/json")
-	public String jpaTeswt(){
-		LocalDate date = LocalDate.now().minusDays(4);
-		return date.toString();
+	@RequestMapping(value = "/weatherStatus/{grad}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getWeatherStatus(
+			@PathVariable(value = "grad") String grad) throws SQLException {
+		return cService.getWeatherStatus(grad);
 	}
+	
 }
