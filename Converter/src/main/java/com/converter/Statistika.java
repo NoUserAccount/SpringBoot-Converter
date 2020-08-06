@@ -132,4 +132,42 @@ public class Statistika {
         emf.close();
 		return jsonArray;
 	}
+
+	public JSONArray getIntervalStat(int interval, String valuta) throws SQLException, JsonProcessingException {
+		LocalDate date = LocalDate.now().minusDays(interval);
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
+	    EntityManager manager = emf.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"SELECT  DATE_FORMAT(Datum, '%d-%m-%Y') AS Datum, Counter from DailyStats where Valuta = :valuta and Datum <= DATE(NOW()) AND Datum >= :date")
+				.setParameter("valuta", valuta)
+				.setParameter("date", date)
+				.getResultList();
+        List<DailyStats> stats = new ArrayList<>(objects.size());
+        for(Object[] obj: objects) {
+        	stats.add(new DailyStats((String) obj[0], (Integer) obj[1]));
+        }
+        String jsonArray = null;
+        ObjectMapper mapper = new ObjectMapper();
+        jsonArray = mapper.writeValueAsString(stats);
+        manager.close();
+        emf.close();
+        JSONArray array = new JSONArray(jsonArray);
+		return array;
+	}
+	
+	public JSONArray getConverterStatistics(int mostCommonInterval, int currencyInterval, String currency) {
+		JSONArray jsonArray = new JSONArray();
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("mostCommonOverall", getMostCommonOverall());
+			obj.put("mostCommonInterval",getMostComonInterval(mostCommonInterval));
+			obj.put("currencyInterval",getIntervalStat(currencyInterval, currency));
+			jsonArray.put(obj);
+		} catch (SQLException | JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return jsonArray;
+	}
 }

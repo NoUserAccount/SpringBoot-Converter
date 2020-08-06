@@ -11,9 +11,11 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -24,14 +26,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.converter.jpa.Currency;
-import com.converter.model.JsonModel;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -44,46 +43,6 @@ import org.json.XML;
 @EnableAutoConfiguration
 public class ConverterDAOImpl implements ConverterDAO {
 
-	@SuppressWarnings("unused")
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	// urlConnect(String url) --> connecting to url passed in argument
-	// getHNB(String url) --> returning json response from url, HNB API
-	// connect() --> returning connection to database - null if fail
-	// getJsonFromHNB() --> returning JSON from HNB --- using Jackson
-	// getJsonFromHNB(String date) --> JSON from HNB by date
-	// assureDate(String datum) --> ok or error
-	// loadCurrencyFromDB(String date) --> fetch curreny response from MySQL
-
-	@Override
-	public String getJsonFromHNB() {
-		URL url;
-		String response = "";
-		String responseModified = "";
-		String responseFinal = "";
-		String insertHRKinJson;
-
-		try {
-			url = new URL("http://api.hnb.hr/tecajn/v1");
-			ObjectMapper mapper = new ObjectMapper();
-			JsonModel[] obj = mapper.readValue(url, JsonModel[].class);
-			response = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
-			responseModified = response.replace('ž', 'z').replace("Srednji za devize", "Srednji");
-			insertHRKinJson = "{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}";
-			insertHRKinJson = ',' + insertHRKinJson;
-			if (responseModified.equals("[ ]")) {
-				responseFinal = "[{\n\"Srednji\" : \"1\",\n\"Drzava\" : \"Hrvatska\",\n\"Valuta\" : \"HRK\",\n\"Jedinica\" : \"1\"\n}]";
-			} else {
-				responseFinal = responseModified.substring(0, responseModified.length() - 1) + insertHRKinJson
-						+ responseModified.charAt(responseModified.length() - 1);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return responseFinal;
-	}
-
 	@Override
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
 		Validacije val = new Validacije();
@@ -94,39 +53,36 @@ public class ConverterDAOImpl implements ConverterDAO {
 		output.put("Drzava", "Hrvatska");
 		output.put("Valuta", "HRK");
 		output.put("Jedinica", 1);
+		output.put("SelectOption", "HRK Hrvatska");
 		array.put(output);
 		if (val.validacijaDatuma(date)) {
 			if ("ok".equals(assureDate(date))) {
 				responseFinal = loadCurrencyFromDB(date);
-				System.out.println("Tečaj učitan iz baze!");
-				LocalDateTime localDate = LocalDateTime.now();
-				System.out.println("assure date over at "+localDate);
 				return responseFinal;
-			}else {
+			} else {
 				return array.toString();
 			}
-		}
-		else {
+		} else {
 			return array.toString();
 		}
 	}
 
 	@Override
-	public String assureDate(String datum)  {
+	public String assureDate(String datum) {
 		String sqlCount = "SELECT COUNT(*) FROM Currency WHERE Datum= ?";
-		String sqlUpdate = "INSERT INTO Currency (Valuta,Vrijednost,Jedinica,Datum, Drzava) Values (?,?,?,?,?)";
+		String sqlUpdate = "INSERT INTO Currency (Valuta,Vrijednost,Jedinica,Datum, Drzava, SelectOption) Values (?,?,?,?,?,?)";
 		ResultSet rs = null;
 		StringBuilder response = null;
-		ConverterDAOImpl impl = new ConverterDAOImpl();
 		String valuta = "";
 		float vrijednost = 0;
 		int jedinica = 0;
 		String datumPrimjene = null;
 		String drzava = "";
+		String option = "";
 		String dateMod = datum.substring(8, 10) + "." + datum.substring(5, 7) + "." + datum.substring(0, 4);
 		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
 		JSONArray arr;
-		Connection conne = impl.connect();
+		Connection conne = connect();
 		int numOfRows = 0;
 		try {
 			PreparedStatement psCount = conne.prepareStatement(sqlCount);
@@ -139,7 +95,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 				return "ok";
 			} else {
-				response = impl.getURL(url);
+				response = getURL(url);
 				if ("[]".equals(response.toString())) {
 					return "wrong date";
 				}
@@ -150,6 +106,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				pst.setFloat(3, 1);
 				pst.setString(4, dateMod);
 				pst.setString(5, "Hrvatska");
+				pst.setString(6, "HRK Hrvatska");
 				pst.executeUpdate();
 				for (int i = 0; i < arr.length(); i++) {
 					datumPrimjene = arr.getJSONObject(i).getString("Datum primjene");
@@ -158,6 +115,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 							.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 					jedinica = arr.getJSONObject(i).getInt("Jedinica");
 					drzava = arr.getJSONObject(i).getString("Država");
+					option = valuta + " " + drzava;
 					try {
 						PreparedStatement ps = conne.prepareStatement(sqlUpdate);
 						ps.setString(1, valuta);
@@ -165,12 +123,12 @@ public class ConverterDAOImpl implements ConverterDAO {
 						ps.setInt(3, jedinica);
 						ps.setString(4, datumPrimjene);
 						ps.setString(5, drzava);
+						ps.setString(6, option);
 						ps.executeUpdate();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
 				}
-				System.out.println("Tečaj upisan u bazu!");
 				conne.close();
 				return "ok";
 			}
@@ -231,34 +189,25 @@ public class ConverterDAOImpl implements ConverterDAO {
 	}
 
 	@Override
-	public void databaseCleaner() throws SQLException {
-		Connection conne = connect();
-		String sql = "DELETE FROM Valute";
-		Statement st = conne.createStatement();
-		st.execute(sql);
-		conne.close();
-		System.out.println("Baza podataka očišćena!");
-	}
-
-	@Override
 	public String loadCurrencyFromDB(String date) throws SQLException, JsonProcessingException {
 		String jsonArray = null;
-        ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = new ObjectMapper();
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
-	    EntityManager manager = emf.createEntityManager();
+		EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager.createQuery("SELECT Valuta, Jedinica, Vrijednost, Drzava FROM Currency WHERE Datum= :date")
-			.setParameter("date", dateMod).getResultList();
-        List<Currency> currencyes = new ArrayList<>(objects.size());
-        for(Object[] obj: objects) {
-        	currencyes.add(new Currency((String) obj[0], (Integer) obj[1], (float) obj[2], (String) obj[3]));
-        }
-			jsonArray = mapper.writeValueAsString(currencyes)
-					.replaceAll("vrijednost", "Srednji")
-					.replaceAll("drzava", "Drzava")
-					.replaceAll("jedinica", "Jedinica")
-					.replaceAll("valuta", "Valuta");
+		List<Object[]> objects = manager
+				.createQuery(
+						"SELECT Valuta, Jedinica, Vrijednost, Drzava, SelectOption FROM Currency WHERE Datum= :date")
+				.setParameter("date", dateMod).getResultList();
+		List<Currency> currencyes = new ArrayList<>(objects.size());
+		for (Object[] obj : objects) {
+			currencyes.add(
+					new Currency((String) obj[0], (Integer) obj[1], (float) obj[2], (String) obj[3], (String) obj[4]));
+		}
+		jsonArray = mapper.writeValueAsString(currencyes).replaceAll("vrijednost", "Srednji")
+				.replaceAll("drzava", "Drzava").replaceAll("jedinica", "Jedinica").replaceAll("valuta", "Valuta")
+				.replaceAll("selectOption", "SelectOption");
 		manager.close();
 		emf.close();
 		return jsonArray;
@@ -271,9 +220,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		LocalDateTime localDate = LocalDateTime.now();
-		System.out.println("get chart data starts at "+localDate);
-		
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Jedinica, Vrijednost, Valuta FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
@@ -284,19 +230,19 @@ public class ConverterDAOImpl implements ConverterDAO {
 		JSONArray array = new JSONArray();
 		while (rs.next()) {
 			JSONObject output = new JSONObject();
-			output.put("Srednji", rs.getFloat(2)/rs.getInt(1));
+			output.put("Srednji", rs.getFloat(2) / rs.getInt(1));
 			output.put("Valuta", rs.getString(3));
 			array.put(output);
 		}
 		conne.close();
 		return array.toString();
-	}	
-	
+	}
+
 	@Override
 	public Connection connect() {
 		Connection conne = null;
 		try {
-			//Class.forName("com.mysql.cj.jdbc.Driver");
+			// Class.forName("com.mysql.cj.jdbc.Driver");
 			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/currencyConverter?useUnicode=true&"
 					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
 					+ "useSSL=false", "root", "root");
@@ -329,7 +275,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 			}
 		}
-		es.emailClient("Pošiljatelj:" + name +" "+ surname + " ("+contact+") "+"\n\n\n"+ message+"\n\n ");
+		es.emailClient("Pošiljatelj:" + name + " " + surname + " (" + contact + ") " + "\n\n\n" + message + "\n\n ");
 		return "Message sent!";
 	}
 
@@ -345,16 +291,15 @@ public class ConverterDAOImpl implements ConverterDAO {
 			PreparedStatement ps = conne.prepareStatement(sql);
 			ps.setString(1, user);
 			rs = ps.executeQuery();
-			while(rs.next()) {
+			while (rs.next()) {
 				approval = rs.getString(1);
 			}
-			if(!psw.equals(approval)) {
-					output.put("value", "FALSE");
-					array.put(output);
-			}
-			else{
-					output.put("value", "OK");
-					array.put(output);
+			if (!psw.equals(approval)) {
+				output.put("value", "FALSE");
+				array.put(output);
+			} else {
+				output.put("value", "OK");
+				array.put(output);
 			}
 			conne.close();
 		} catch (SQLException e) {
@@ -382,91 +327,150 @@ public class ConverterDAOImpl implements ConverterDAO {
 			array.put(output);
 		}
 		conne.close();
-	return array.toString();	
+		return array.toString();
 	}
 
 	@Override
 	public String getWeather() {
-	String url ="https://vrijeme.hr/hrvatska1_n.xml";
-			HttpURLConnection con = null;
-			String inputLine = "";
-			StringBuilder response = null;
-			InputStreamReader sr = null;
-			BufferedReader in = null;
-			String jsonPrettyPrintString = null;
-			JSONArray array = new JSONArray();
-			int PRETTY_PRINT_INDENT_FACTOR = 4;
-			if ((con = urlConnect(url)) != null) {
-				try {
-					sr = new InputStreamReader(con.getInputStream());
-					in = new BufferedReader(sr);
-					response = new StringBuilder();
-					while ((inputLine = in.readLine()) != null) {
-						response.append(inputLine);
-					}
-					sr.close();
-					in.close();
-					JSONObject xmlJSONObj = XML.toJSONObject(response.toString());
-		            jsonPrettyPrintString = xmlJSONObj.toString(PRETTY_PRINT_INDENT_FACTOR);
-		            JSONObject obj = new JSONObject(new JSONTokener(new StringReader(jsonPrettyPrintString)));
-					ObjectMapper mapper = new ObjectMapper();
-					JsonNode rootNode = mapper.readTree(obj.toString());
-					if (rootNode.iterator().next().get("Grad").isArray()) {
-					    for (final JsonNode objNode : rootNode.iterator().next().get("Grad")) {
-							JSONObject podatci = new JSONObject();
-							podatci = new JSONObject(objNode.get("Podatci").toString());
-							if (objNode.get("Podatci").isObject()) {
-							        String grad = objNode.get("GradIme").toString().substring(1, objNode.get("GradIme").toString().length()-1);
-									JSONObject output = new JSONObject();
-							        output.put("Grad", grad);
-							        output.put("Temperatura", podatci.get("Temp").toString());
-							        output.put("Tlak", podatci.get("Tlak").toString());
-							        output.put("TlakTend", podatci.get("TlakTend").toString());
-							        output.put("VjetarSmjer", podatci.get("VjetarSmjer").toString());
-							        output.put("VjetarBrzina", podatci.get("VjetarBrzina").toString());
-							        output.put("Vrijeme", podatci.get("Vrijeme").toString());
-							        array.put(output);
-							}
-					    }
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
+		String url = "https://vrijeme.hr/hrvatska1_n.xml";
+		HttpURLConnection con = null;
+		String inputLine = "";
+		StringBuilder response = null;
+		InputStreamReader sr = null;
+		BufferedReader in = null;
+		String jsonPrettyPrintString = null;
+		JSONArray array = new JSONArray();
+		int PRETTY_PRINT_INDENT_FACTOR = 4;
+		if ((con = urlConnect(url)) != null) {
+			try {
+				sr = new InputStreamReader(con.getInputStream());
+				in = new BufferedReader(sr);
+				response = new StringBuilder();
+				while ((inputLine = in.readLine()) != null) {
+					response.append(inputLine);
 				}
+				sr.close();
+				in.close();
+				JSONObject xmlJSONObj = XML.toJSONObject(response.toString());
+				jsonPrettyPrintString = xmlJSONObj.toString(PRETTY_PRINT_INDENT_FACTOR);
+				JSONObject obj = new JSONObject(new JSONTokener(new StringReader(jsonPrettyPrintString)));
+				ObjectMapper mapper = new ObjectMapper();
+				JsonNode rootNode = mapper.readTree(obj.toString());
+				if (rootNode.iterator().next().get("Grad").isArray()) {
+					for (final JsonNode objNode : rootNode.iterator().next().get("Grad")) {
+						JSONObject podatci = new JSONObject();
+						podatci = new JSONObject(objNode.get("Podatci").toString());
+						if (objNode.get("Podatci").isObject()) {
+							String grad = objNode.get("GradIme").toString().substring(1,
+									objNode.get("GradIme").toString().length() - 1);
+							JSONObject output = new JSONObject();
+							output.put("Grad", grad);
+							output.put("Temperatura", podatci.get("Temp").toString());
+							output.put("Tlak", podatci.get("Tlak").toString());
+							output.put("TlakTend", podatci.get("TlakTend").toString());
+							output.put("VjetarSmjer", podatci.get("VjetarSmjer").toString());
+							output.put("VjetarBrzina", podatci.get("VjetarBrzina").toString());
+							output.put("Vrijeme", podatci.get("Vrijeme").toString());
+							array.put(output);
+						}
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			return array.toString();
+		}
+		return array.toString();
 	}
 
 	@Override
 	public String getWeatherStatus(String grad) {
 		JSONObject obj;
-		String city = grad.replace(" ", "%20");
-		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query=" + city;
-		String response; 
+		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query="+grad.replace(" ", "%20");
+		String response;
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
 
-		if((response = getURL(url).toString()) != null) {
+		if ((response = getURL(url).toString()) != null) {
 			obj = new JSONObject(response.toString());
-			JSONObject request = obj.getJSONObject("request");
+			JSONObject request = new JSONObject();
+			try {
+				request = obj.getJSONObject("request");
+			} catch (JSONException e) {
+				return "[]";
+			}
 			JSONObject location = obj.getJSONObject("location");
 			JSONObject current = obj.getJSONObject("current");
-				output.put("query", request.getString("query"));
-				output.put("region", location.getString("region"));
-				output.put("observation_time", current.getString("observation_time"));
-				output.put("temperature", current.get("temperature").toString());
-				output.put("description", current.getJSONArray("weather_descriptions").getString(0));
-				output.put("weather_icon", current.getJSONArray("weather_icons").getString(0));
-				output.put("wind_speed", current.get("wind_speed").toString());
-				output.put("wind_direction", current.get("wind_dir").toString());
-				output.put("pressure", current.get("pressure").toString());
-		    	output.put("precipitation", current.get("precip").toString());
-				output.put("humidity", current.get("humidity").toString());
-		    	output.put("cloudcover", current.get("cloudcover").toString());
-		    	output.put("feelslike", current.get("feelslike").toString());
-		    	output.put("uv_index", current.get("uv_index").toString());
-		    	output.put("visibility", current.get("visibility").toString());
-		    	output.put("isDay", current.get("is_day").toString());
-		    array.put(output);				
+			output.put("query", request.getString("query"));
+			output.put("region", location.getString("region"));
+			output.put("observation_time", current.getString("observation_time"));
+			output.put("temperature", current.get("temperature").toString());
+			output.put("description", current.getJSONArray("weather_descriptions").getString(0));
+			output.put("weather_icon", current.getJSONArray("weather_icons").getString(0));
+			output.put("wind_speed", current.get("wind_speed").toString());
+			output.put("wind_direction", current.get("wind_dir").toString());
+			output.put("pressure", current.get("pressure").toString());
+			output.put("precipitation", current.get("precip").toString());
+			output.put("humidity", current.get("humidity").toString());
+			output.put("cloudcover", current.get("cloudcover").toString());
+			output.put("feelslike", current.get("feelslike").toString());
+			output.put("uv_index", current.get("uv_index").toString());
+			output.put("visibility", current.get("visibility").toString());
+			output.put("isDay", current.get("is_day").toString());
+			array.put(output);
+		}
+		return array.toString();
+	}
+
+	@Override
+	public String getEarthquake() {
+		LocalDate today = LocalDate.now();
+		LocalDate daysAgo = LocalDate.now().minusDays(365);
+		String url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=" + daysAgo
+				+ "&endtime=" + today + "&"
+				+ "minmagnitude=3&minlongitude=13.040373&maxlongitude=19.944292&minlatitude=41.101707&maxlatitude=47.239711";
+		SimpleDateFormat dt1 = new SimpleDateFormat("dd.MM.yyyy hh:mm");
+		String response;
+		JSONObject obj;
+		JSONObject properties = new JSONObject();
+		JSONObject singlePropertie = new JSONObject();
+		JSONObject singleGeometry = new JSONObject();
+		JSONArray array = new JSONArray();
+		JSONArray features = new JSONArray();
+		if ((response = getURL(url).toString()) != null) {
+			obj = new JSONObject(response.toString());
+			try {
+				features = obj.getJSONArray("features");
+			}catch(JSONException json) {
+				return "[]";
+			}
+			
+			for (int i = 0; i < features.length(); i++) {
+				properties = features.getJSONObject(i);
+				singlePropertie = properties.getJSONObject("properties");
+				singleGeometry = properties.getJSONObject("geometry");
+				JSONObject output = new JSONObject();
+				output.put("place", singlePropertie.get("place").toString());
+				output.put("magnitude", singlePropertie.get("mag").toString());
+				Timestamp stamp = new Timestamp((long) singlePropertie.get("time"));
+				Date date = new Date(stamp.getTime());
+				output.put("time", dt1.format(date).toString());
+				String felt = singlePropertie.get("felt").toString();
+				if ("null".equals(felt) || "".equals(felt)) {
+					felt = "no reports";
+				}
+				output.put("DYFI", felt);
+				String alert = singlePropertie.get("alert").toString();
+				if ("null".equals(alert) || "".equals(alert)) {
+					alert = "white";
+				}
+				output.put("alert", alert);
+				output.put("url", singlePropertie.get("url"));
+				output.put("longitude", singleGeometry.getJSONArray("coordinates").get(0).toString());
+				output.put("latitude", singleGeometry.getJSONArray("coordinates").get(1).toString());
+				output.put("depth", singleGeometry.getJSONArray("coordinates").get(2).toString());
+				array.put(output);
+			}
+
 		}
 		return array.toString();
 	}

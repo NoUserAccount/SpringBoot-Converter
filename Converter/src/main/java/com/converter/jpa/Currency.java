@@ -11,15 +11,17 @@ public class Currency {
 	private float Vrijednost;
 	private int Jedinica;
 	private String Drzava;
+	private String SelectOption;
 	
 	public Currency() {};
 	
-	public Currency(String Valuta, int Jedinica, float Srednji, String Drzava) {
+	public Currency(String Valuta, int Jedinica, float Srednji, String Drzava, String SelectOption) {
 		super();
 		this.Valuta = Valuta;
 		this.Vrijednost = Srednji;
 		this.Jedinica = Jedinica;
 		this.Drzava = Drzava;
+		this.SelectOption = SelectOption;
 	}
 	
 	public String getValuta() {
@@ -43,12 +45,22 @@ public class Currency {
 	public String getDrzava() {
 		return Drzava;
 	}
+	public String getSelectOption() {
+		return SelectOption;
+	}
+
+	public void setSelectOption(String SelectOption) {
+		this.SelectOption = SelectOption;
+	}
+
 	public void setDrzava(String Drzava) {
 		this.Drzava = Drzava;
 	}
+
 	@Override
 	public String toString() {
-		return "Currency [Valuta=" + Valuta + ", Vrijednost=" + Vrijednost + ", Jedinica=" + Jedinica
-				 + ", Drzava=" + Drzava + "]";
+		return "Currency [Valuta=" + Valuta + ", Vrijednost=" + Vrijednost + ", Jedinica=" + Jedinica + ", Drzava="
+				+ Drzava + ", SelectOption=" + SelectOption + "]";
 	}
+
 }

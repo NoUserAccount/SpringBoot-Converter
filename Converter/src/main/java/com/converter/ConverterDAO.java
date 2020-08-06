@@ -18,15 +18,14 @@ public interface ConverterDAO {
 	public HttpURLConnection urlConnect(String url);
 	public StringBuilder getURL(String url) throws JsonParseException, JsonMappingException, IOException;
 	public String assureDate(String datum) throws JSONException, JsonParseException, JsonMappingException, IOException;
-	public String getJsonFromHNB();
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException;
 	public String loadCurrencyFromDB(String date) throws SQLException, JsonProcessingException ;
-	public void databaseCleaner() throws SQLException;
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException;
 	public JSONArray login(String user, String psw) throws SQLException, JSONException;
 	public String getMessages() throws SQLException;
 	public String getWeather();
 	public String getChartData(String datum) throws SQLException;
 	public String getWeatherStatus(String grad);
+	String getEarthquake();
 	
 }

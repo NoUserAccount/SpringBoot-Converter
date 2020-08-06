@@ -42,10 +42,6 @@ public class ConverterService {
 		return cDao.assureDate(datum);
 	}
 	
-	public String getJsonFromHNB() {
-		return cDao.getJsonFromHNB();
-	}
-	
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
 		return cDao.getCurrency(date);
 	}
@@ -84,6 +80,14 @@ public class ConverterService {
 
 	public String getWeatherStatus(String grad) {
 		return cDao.getWeatherStatus(grad);
+	}
+
+	public String getEarthquake() {
+		return cDao.getEarthquake();
+	}
+
+	public JSONArray getConverterStats(int mostCommonInterval, int currencyInterval, String currency) {
+		return stats.getConverterStatistics(mostCommonInterval, currencyInterval,currency);
 	}
 	
 }
