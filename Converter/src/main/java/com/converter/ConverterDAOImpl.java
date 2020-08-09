@@ -13,7 +13,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,7 +33,9 @@ import org.json.JSONTokener;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Repository;
-
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import com.converter.jpa.Autorisation;
+import com.converter.jpa.Bookshelf;
 import com.converter.jpa.Currency;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,6 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.XML;
 
 @Repository
+@EnableTransactionManagement
 @ComponentScan(basePackages = "com.converter")
 @EnableAutoConfiguration
 public class ConverterDAOImpl implements ConverterDAO {
@@ -193,7 +200,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String jsonArray = null;
 		ObjectMapper mapper = new ObjectMapper();
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
-		EntityManagerFactory emf = Persistence.createEntityManagerFactory("pu");
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
 		List<Object[]> objects = manager
@@ -385,7 +392,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@Override
 	public String getWeatherStatus(String grad) {
 		JSONObject obj;
-		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query="+grad.replace(" ", "%20");
+		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query="
+				+ grad.replace(" ", "%20");
 		String response;
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
@@ -440,10 +448,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 			obj = new JSONObject(response.toString());
 			try {
 				features = obj.getJSONArray("features");
-			}catch(JSONException json) {
+			} catch (JSONException json) {
 				return "[]";
 			}
-			
+
 			for (int i = 0; i < features.length(); i++) {
 				properties = features.getJSONObject(i);
 				singlePropertie = properties.getJSONObject("properties");
@@ -472,6 +480,187 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 
 		}
+		return array.toString();
+	}
+
+	@Override
+	public String autheticateUser(String username, String password) {
+		String resultArray = null;
+		ObjectMapper mapper = new ObjectMapper();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"SELECT UID, Administrator, Username, Passwords, FirstName, LastName, Telephone, Address FROM Autorisation WHERE Username= :username AND Passwords= :password")
+				.setParameter("username", username).setParameter("password", password).getResultList();
+		List<Autorisation> user = new ArrayList<>(objects.size());
+		List<Autorisation> falseUser = new ArrayList<>(user.size());
+		for (Object[] obj : objects) {
+			user.add(new Autorisation((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3],
+					(String) obj[4], (String) obj[5], (String) obj[6], (String) obj[7]));
+		}
+		try {
+			if (user.toString().equals("") || user.toString() == null || user.toString().equals("[]")) {
+				falseUser.add(new Autorisation("false","false","false","false","false","false","false","false"));
+				resultArray = mapper.writeValueAsString(falseUser);
+			} else {
+				resultArray = mapper.writeValueAsString(user);
+			}
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		} finally {
+			manager.close();
+			emf.close();
+		}
+		
+		return resultArray;
+	}
+
+	@Override
+	public String addNewBook(String title, String writerLast, String writerFirst, String genre) throws JsonProcessingException {
+		String BID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		ObjectMapper mapper = new ObjectMapper();
+		String array = "[]";
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"SELECT BID, BookTitle, AuthorLastName, IssuedDate FROM Bookshelf WHERE BookTitle= :title AND AuthorLastName= :writer")
+				.setParameter("title", title).setParameter("writer", writerLast).getResultList();
+		List<Bookshelf> book = new ArrayList<>(objects.size());
+		for (Object[] obj : objects) {
+			book.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3]));
+		}
+		if (book.size() != 0) {
+			array = mapper.writeValueAsString(book);
+		} else {
+			try {
+				manager.getTransaction().begin();
+				Bookshelf newBook = new Bookshelf(BID, title, writerLast, writerFirst, genre, "in library");
+				manager.persist(newBook);
+				manager.getTransaction().commit();
+				manager.close();
+				emf.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return array;
+	}
+	
+
+	@Override
+	public String addNewUser(String admin, String username, String password, String name, String surname, String telephone, String address) throws JsonProcessingException {
+		String UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"SELECT UID FROM Autorisation WHERE UID= :uid")
+				.setParameter("uid", UID).getResultList();
+		List<Autorisation> auth = new ArrayList<>(objects.size());
+		for (Object[] obj : objects) {
+			auth.add(new Autorisation((String) obj[0]));
+		}
+		if (auth.size() != 0) {
+			UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+		}
+		try {
+				manager.getTransaction().begin();
+				Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone, address);
+				manager.persist(autorisation);
+				manager.getTransaction().commit();
+				manager.close();
+				emf.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		return "OK";
+	}
+	
+	@Override
+	public String getBooksList() throws JsonProcessingException {
+		String resultArray = null;
+		ObjectMapper mapper = new ObjectMapper();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
+				+ "IssuedDate, ReturnDate, Period, FINE FROM Bookshelf").getResultList();		
+		List<Bookshelf> books = new ArrayList<>(objects.size());
+		for (Object[] obj : objects) {
+			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
+					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8], (String) obj[9]));
+		}
+		for(Bookshelf b: books) {
+			if(!b.getIssuedDate().equals("in library")) {
+				b.setIssuedDate("borrowed");
+			}
+		}
+			resultArray = mapper.writeValueAsString(books);
+		manager.close();
+		emf.close();
+		return resultArray;
+	}
+
+	@Override
+	public String getLoanedBooks(String user) throws SQLException {
+		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE from (\n" + 
+				"SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE\n" + 
+				"FROM Autorisation\n" + 
+				"INNER JOIN Bookshelf ON Autorisation.UID = Bookshelf.UID\n" + 
+				") tab where UID = ?";
+		LocalDate issuedDate;
+		LocalDate today = LocalDate.now();
+		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		today.format(formater);
+		Connection conne = connect();
+		PreparedStatement ps = conne.prepareStatement(sqlSelect);
+		ps.setString(1, user);
+		ResultSet rs = ps.executeQuery();
+		JSONArray array = new JSONArray();
+		float issue = 0;
+		while (rs.next()) {
+			JSONObject output = new JSONObject();
+			long period = 0;
+			float fine = 0;
+			output.put("uid", rs.getString(1));
+			output.put("name", rs.getString(2));
+			output.put("surname", rs.getString(3));
+			output.put("book", rs.getString(4));
+			output.put("author", rs.getString(5));
+			output.put("bid", rs.getString(6));
+			issuedDate = LocalDate.parse(rs.getString(7));
+			period = ChronoUnit.DAYS.between(issuedDate, today);
+			output.put("issuedDate", rs.getString(7));
+			output.put("period", period);
+			if(period > 30) {
+				fine += 0.50 * (period - 30);
+				issue += fine;
+			}
+			output.put("fine", issue);
+			array.put(output);
+		}
+		conne.close();
+		
+		return array.toString();
+	}
+
+	@Override
+	public String verifyUser(String user) throws SQLException {
+		String select = "SELECT UID, FirstName, LastName FROM AUTORISATION WHERE UID =" + user;
+		Connection conn = connect();
+		PreparedStatement ps = conn.prepareStatement(select);
+		ResultSet rs = ps.executeQuery();
+		JSONArray array = new JSONArray();
+		while(rs.next()) {
+			JSONObject obj = new JSONObject();
+			obj.put("name", rs.getString(2));
+			obj.put("surname", rs.getString(3));
+			array.put(obj);
+		}
+		conn.close();
 		return array.toString();
 	}
 }

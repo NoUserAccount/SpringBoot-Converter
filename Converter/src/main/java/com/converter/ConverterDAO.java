@@ -27,5 +27,15 @@ public interface ConverterDAO {
 	public String getChartData(String datum) throws SQLException;
 	public String getWeatherStatus(String grad);
 	String getEarthquake();
+	public String autheticateUser(String username, String password);
+	public String addNewBook(String title, String writerLast, String writerFirst, String genre) throws JsonProcessingException;
+	public String addNewUser(String admin, String username, String password, String name, String surname,
+			String telephone, String address) throws JsonProcessingException;
+	String getBooksList() throws JsonProcessingException;
+	public String getLoanedBooks(String user) throws SQLException;
+	public String verifyUser(String user) throws SQLException;
+
+
+
 	
 }

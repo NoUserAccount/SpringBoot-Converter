@@ -54,10 +54,6 @@ public class ConverterService {
 		return stats.getMostComonInterval(interval);
 	}
 	
-	public String getIntervalStats(int interval, String valuta) throws JsonProcessingException, SQLException {
-		return stats.getIntervalStats(interval, valuta);
-	}
-	
 	public String contactInfo(String name, String surname, String contact, String message) throws SQLException {
 		return cDao.contactInfo(name, surname, contact, message);
 	}
@@ -88,6 +84,31 @@ public class ConverterService {
 
 	public JSONArray getConverterStats(int mostCommonInterval, int currencyInterval, String currency) {
 		return stats.getConverterStatistics(mostCommonInterval, currencyInterval,currency);
+	}
+
+	public String authenticateBookshelfUser(String username, String password) {
+		return cDao.autheticateUser(username, password);
+	}
+
+	public String addBookToBookshelf(String title, String writerLast, String writerFirst, String genre) throws JsonProcessingException {
+		return cDao.addNewBook(title, writerLast, writerFirst, genre);
+	}
+
+	public String addNewUser(String admin, String username, String password, String name, String surname,
+			String telephone, String address) throws JsonProcessingException {
+		return cDao.addNewUser(admin, username, password, name, surname, telephone, address);
+	}
+
+	public String getBooksList() throws JsonProcessingException {
+		return cDao.getBooksList();
+	}
+
+	public String getLoanedBooks(String user) throws SQLException {
+		return cDao.getLoanedBooks(user);
+	}
+
+	public String verifyUser(String user) throws SQLException {
+		return cDao.verifyUser(user);
 	}
 	
 }

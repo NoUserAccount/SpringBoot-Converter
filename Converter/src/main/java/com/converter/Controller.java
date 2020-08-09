@@ -3,14 +3,8 @@ package com.converter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-
-import org.json.JSONException;
+import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,8 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.converter.jpa.Currency;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -73,5 +65,49 @@ public class Controller {
 	public @ResponseBody String getEarthquakeData () throws SQLException {
 		return cService.getEarthquake();
 	}
+	
+	@RequestMapping(value = "/authenticateUser/{username}/{password}", method = RequestMethod.GET)
+	public @ResponseBody String authenticateUser(
+			@PathVariable(value = "username") String username, 
+			@PathVariable(value = "password") String password) throws SQLException {
+		return cService.authenticateBookshelfUser(username, password).toString();
+	}
+	
+	@RequestMapping(value = "/addNewBook/{title}/{writerLast}/{writerFirst}/{genre}", method = RequestMethod.GET)
+	public @ResponseBody String addNewBook(
+			@PathVariable(value = "title") String title,
+			@PathVariable(value = "writerLast") String writerLast,
+			@PathVariable(value = "writerFirst") String writerFirst,
+			@PathVariable(value = "genre") String genre) throws ParseException, SQLException, JsonProcessingException {
+		return cService.addBookToBookshelf(title,writerLast,writerFirst,genre).toString();
+	}
+	
+	@RequestMapping(value = "/addNewUser/{admin}/{username}/{password}/{name}/{surname}/{telephone}/{address}", method = RequestMethod.GET)
+	public @ResponseBody String addNewUser(
+			@PathVariable(value = "admin") String admin,
+			@PathVariable(value = "username") String username,
+			@PathVariable(value = "password") String password,
+			@PathVariable(value = "name") String name,
+			@PathVariable(value = "surname") String surname,
+			@PathVariable(value = "telephone") String telephone,
+			@PathVariable(value = "address") String address) throws ParseException, SQLException, JsonProcessingException {
+		return cService.addNewUser(admin,username,password,name,surname,telephone,address);
+	}
+	
+	@RequestMapping(value = "/books", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getBooks() throws SQLException, JsonProcessingException {
+		return cService.getBooksList();
+	}
+	
+	@RequestMapping(value = "/userLoan/{user}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getLoanedBooks(@PathVariable(value="user") String user) throws SQLException, JsonProcessingException {
+		return cService.getLoanedBooks(user);
+	}
+	
+	@RequestMapping(value = "/user/{user}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String verifyUser(@PathVariable(value="user") String user) throws SQLException, JsonProcessingException {
+		return cService.verifyUser(user);
+	}
+	
 
 }
