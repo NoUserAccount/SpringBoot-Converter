@@ -34,6 +34,8 @@ public interface ConverterDAO {
 	String getBooksList() throws JsonProcessingException;
 	public String getLoanedBooks(String user) throws SQLException;
 	public String verifyUser(String user) throws SQLException;
+	public String loanBook(String user, String book) throws SQLException;
+	public String returnBook(String book) throws SQLException;
 
 
 

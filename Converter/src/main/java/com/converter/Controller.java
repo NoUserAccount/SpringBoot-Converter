@@ -1,6 +1,17 @@
 package com.converter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 
@@ -104,10 +115,66 @@ public class Controller {
 		return cService.getLoanedBooks(user);
 	}
 	
+	@RequestMapping(value = "/loan/{user}/{book}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String postLoanBook(
+			@PathVariable(value="user") String user,
+			@PathVariable(value="book") String book) throws SQLException, JsonProcessingException {
+		return cService.loanBook(user, book);
+	}
+	
+	@RequestMapping(value = "/return/{book}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String postReturnBook(
+			@PathVariable(value="book") String book) throws SQLException, JsonProcessingException {
+		return cService.returnBook(book);
+	}
+	
 	@RequestMapping(value = "/user/{user}", method = RequestMethod.GET, produces = "application/json")
-	public @ResponseBody String verifyUser(@PathVariable(value="user") String user) throws SQLException, JsonProcessingException {
+	public @ResponseBody String verifyUser(@PathVariable(value="user") String user) throws SQLException {
 		return cService.verifyUser(user);
 	}
+	
+	@RequestMapping(value = "/test", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String test() throws SQLException, IOException {
+		String imageUrl = "http://www.avajava.com/images/avajavalogo.jpg";
+	    String destinationFile = "image.jpg";
+		URL url = new URL(imageUrl);
+	    InputStream is = url.openStream();
+	    OutputStream os = new FileOutputStream(destinationFile);
+	    byte[] b = new byte[2048];
+	    int length;
+	    while ((length = is.read(b)) != -1) {
+	        os.write(b, 0, length);
+	    }
+	    is.close();
+	    os.close();	
+		ConverterDAOImpl impl = new ConverterDAOImpl();
+			File image = new File("image.jpg");
+			FileInputStream fis = new FileInputStream(image);
+			PreparedStatement st = null;
+			Connection c = impl.connect();
+			st = c.prepareStatement("insert into ImageBlob (ID, IMAGE) values (?,?)");
+			st.setString(1, "2");
+			st.setBinaryStream(2, (InputStream) fis, (int)(image.length()));
+			st.executeUpdate();
+			st.close();
+			
+			
+		st = c.prepareStatement("select ID, IMAGE from ImageBlob");
+		ResultSet rs = st.executeQuery();
+			while(rs.next()) {
+				System.out.println(rs.getBinaryStream(2));
+			}
+			
+		return "";
+	}
+	
+	
+	
+	
+	
+	
+	
+	
 	
 
 }

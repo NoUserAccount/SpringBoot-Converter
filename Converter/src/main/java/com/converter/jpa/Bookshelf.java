@@ -16,7 +16,6 @@ public class Bookshelf {
 	private String AuthorFirstName;
 	private String BookGenre;
 	private String IssuedDate;
-	private String ReturnDate;
 	private String Period;
 	private String FINE;
 
@@ -32,7 +31,7 @@ public class Bookshelf {
 	}
 
 	public Bookshelf(String bID, String uID, String bookTitle, String authorLastName, String authorFirstName,
-			String bookGenre, String issuedDate, String returnDate, String period, String fINE) {
+			String bookGenre, String issuedDate, String period, String fINE) {
 		super();
 		BID = bID;
 		UID = uID;
@@ -41,7 +40,6 @@ public class Bookshelf {
 		AuthorFirstName = authorFirstName;
 		BookGenre = bookGenre;
 		IssuedDate = issuedDate;
-		ReturnDate = returnDate;
 		Period = period;
 		FINE = fINE;
 	}
@@ -111,14 +109,6 @@ public class Bookshelf {
 		IssuedDate = issuedDate;
 	}
 
-	public String getReturnDate() {
-		return ReturnDate;
-	}
-
-	public void setReturnDate(String returnDate) {
-		ReturnDate = returnDate;
-	}
-
 	public String getPeriod() {
 		return Period;
 	}
@@ -139,7 +129,7 @@ public class Bookshelf {
 	public String toString() {
 		return "Bookshelf [BID=" + BID + ", UID=" + UID + ", BookTitle=" + BookTitle + ", AuthorLastName="
 				+ AuthorLastName + ", AuthorFirstName=" + AuthorFirstName + ", BookGenre=" + BookGenre + ", IssuedDate="
-				+ IssuedDate + ", ReturnDate=" + ReturnDate + ", Period=" + Period + ", FINE=" + FINE + "]";
+				+ IssuedDate + ", Period=" + Period + ", FINE=" + FINE + "]";
 	}
 
 }

@@ -11,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -494,18 +495,15 @@ public class ConverterDAOImpl implements ConverterDAO {
 				"SELECT UID, Administrator, Username, Passwords, FirstName, LastName, Telephone, Address FROM Autorisation WHERE Username= :username AND Passwords= :password")
 				.setParameter("username", username).setParameter("password", password).getResultList();
 		List<Autorisation> user = new ArrayList<>(objects.size());
-		List<Autorisation> falseUser = new ArrayList<>(user.size());
 		for (Object[] obj : objects) {
 			user.add(new Autorisation((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3],
 					(String) obj[4], (String) obj[5], (String) obj[6], (String) obj[7]));
 		}
 		try {
 			if (user.toString().equals("") || user.toString() == null || user.toString().equals("[]")) {
-				falseUser.add(new Autorisation("false","false","false","false","false","false","false","false"));
-				resultArray = mapper.writeValueAsString(falseUser);
-			} else {
-				resultArray = mapper.writeValueAsString(user);
+				user.add(new Autorisation("false","false","false","false","false","false","false","false"));
 			}
+			resultArray = mapper.writeValueAsString(user);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		} finally {
@@ -587,11 +585,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 		@SuppressWarnings("unchecked")
 		List<Object[]> objects = manager.createQuery(
 				"SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
-				+ "IssuedDate, ReturnDate, Period, FINE FROM Bookshelf").getResultList();		
+				+ "IssuedDate, Period, FINE FROM Bookshelf").getResultList();		
 		List<Bookshelf> books = new ArrayList<>(objects.size());
 		for (Object[] obj : objects) {
 			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
-					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8], (String) obj[9]));
+					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8]));
 		}
 		for(Bookshelf b: books) {
 			if(!b.getIssuedDate().equals("in library")) {
@@ -641,6 +639,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			output.put("fine", issue);
 			array.put(output);
+			Statement st = conne.createStatement();
+			st.executeUpdate("UPDATE currencyconverter.Bookshelf SET FINE = '"+ String.valueOf(fine) +"', Period = '"+period+"' WHERE BID = '"+rs.getString(6)+"' AND UID = '"+ rs.getString(1)+"'");
+			st.close();
 		}
 		conne.close();
 		
@@ -649,9 +650,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String verifyUser(String user) throws SQLException {
-		String select = "SELECT UID, FirstName, LastName FROM AUTORISATION WHERE UID =" + user;
+		String select = "SELECT UID, FirstName, LastName FROM AUTORISATION WHERE UID = ?";
 		Connection conn = connect();
 		PreparedStatement ps = conn.prepareStatement(select);
+		ps.setString(1, user);
 		ResultSet rs = ps.executeQuery();
 		JSONArray array = new JSONArray();
 		while(rs.next()) {
@@ -663,4 +665,36 @@ public class ConverterDAOImpl implements ConverterDAO {
 		conn.close();
 		return array.toString();
 	}
+
+	@Override
+	public String loanBook(String user, String book) throws SQLException {
+		LocalDate today = LocalDate.now();
+		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		today.format(formater);
+		Connection conn = connect();
+		String sql = "UPDATE currencyconverter.Bookshelf SET UID = ? , IssuedDate = ? WHERE BID = ?";
+		PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, user);
+			ps.setString(2, today.toString());
+			ps.setString(3, book);
+			ps.executeUpdate();
+			ps.close();
+			conn.close();
+		return null;
+	}
+
+	@Override
+	public String returnBook(String book) throws SQLException {
+		Connection conn = connect();
+		String sql = "UPDATE currencyconverter.Bookshelf SET UID = '' , IssuedDate = 'in library', Period = 0 , FINE = 0 WHERE BID = ?";
+		PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, book);
+			ps.executeUpdate();
+			ps.close();
+			conn.close();
+		return null;
+	}
+	
+	
+	
 }

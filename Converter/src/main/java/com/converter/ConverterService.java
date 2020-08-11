@@ -110,6 +110,14 @@ public class ConverterService {
 	public String verifyUser(String user) throws SQLException {
 		return cDao.verifyUser(user);
 	}
+
+	public String loanBook(String user, String book) throws SQLException {
+		return cDao.loanBook(user, book);
+	}
+
+	public String returnBook(String book) throws SQLException {
+		return cDao.returnBook(book);
+	}
 	
 }
 
