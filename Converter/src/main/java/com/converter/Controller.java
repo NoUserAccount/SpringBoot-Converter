@@ -2,12 +2,10 @@ package com.converter;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,7 +13,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 
-import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -103,6 +100,12 @@ public class Controller {
 			@PathVariable(value = "telephone") String telephone,
 			@PathVariable(value = "address") String address) throws ParseException, SQLException, JsonProcessingException {
 		return cService.addNewUser(admin,username,password,name,surname,telephone,address);
+	}
+	
+	@RequestMapping(value = "/delete/{user}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String deleteUser(
+			@PathVariable(value="user") String user) throws SQLException, JsonProcessingException {
+		return cService.deleteUser(user);
 	}
 	
 	@RequestMapping(value = "/books", method = RequestMethod.GET, produces = "application/json")

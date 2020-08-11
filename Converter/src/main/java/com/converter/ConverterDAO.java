@@ -36,6 +36,7 @@ public interface ConverterDAO {
 	public String verifyUser(String user) throws SQLException;
 	public String loanBook(String user, String book) throws SQLException;
 	public String returnBook(String book) throws SQLException;
+	public String deleteUser(String user) throws SQLException;
 
 
 

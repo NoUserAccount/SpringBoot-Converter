@@ -118,6 +118,10 @@ public class ConverterService {
 	public String returnBook(String book) throws SQLException {
 		return cDao.returnBook(book);
 	}
+
+	public String deleteUser(String user) throws SQLException {
+		return cDao.deleteUser(user);
+	}
 	
 }
 

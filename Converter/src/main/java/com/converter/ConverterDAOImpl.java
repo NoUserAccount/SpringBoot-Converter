@@ -14,9 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -501,7 +499,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 		try {
 			if (user.toString().equals("") || user.toString() == null || user.toString().equals("[]")) {
-				user.add(new Autorisation("false","false","false","false","false","false","false","false"));
+				user.add(new Autorisation("false", "false", "false", "false", "false", "false", "false", "false"));
 			}
 			resultArray = mapper.writeValueAsString(user);
 		} catch (JsonProcessingException e) {
@@ -510,51 +508,52 @@ public class ConverterDAOImpl implements ConverterDAO {
 			manager.close();
 			emf.close();
 		}
-		
+
 		return resultArray;
 	}
 
 	@Override
-	public String addNewBook(String title, String writerLast, String writerFirst, String genre) throws JsonProcessingException {
-		String BID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+	public String addNewBook(String title, String writerLast, String writerFirst, String genre)
+			throws JsonProcessingException {
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
-		ObjectMapper mapper = new ObjectMapper();
 		String array = "[]";
-		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager.createQuery(
-				"SELECT BID, BookTitle, AuthorLastName, IssuedDate FROM Bookshelf WHERE BookTitle= :title AND AuthorLastName= :writer")
-				.setParameter("title", title).setParameter("writer", writerLast).getResultList();
-		List<Bookshelf> book = new ArrayList<>(objects.size());
-		for (Object[] obj : objects) {
-			book.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3]));
-		}
-		if (book.size() != 0) {
-			array = mapper.writeValueAsString(book);
-		} else {
-			try {
-				manager.getTransaction().begin();
-				Bookshelf newBook = new Bookshelf(BID, title, writerLast, writerFirst, genre, "in library");
-				manager.persist(newBook);
-				manager.getTransaction().commit();
-				manager.close();
-				emf.close();
-			} catch (Exception e) {
-				e.printStackTrace();
+		String BID = "000000000";
+		while (true) {
+			BID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+			@SuppressWarnings("unchecked")
+			List<Object[]> objects = manager.createQuery("SELECT BID FROM Bookshelf WHERE BID = :bid")
+					.setParameter("bid", BID).getResultList();
+			List<Bookshelf> book = new ArrayList<>(objects.size());
+			for (Object[] obj : objects) {
+				book.add(new Bookshelf((String) obj[0]));
+			}
+			if (book.size() == 0) {
+				break;
 			}
 		}
+		try {
+			manager.getTransaction().begin();
+			Bookshelf newBook = new Bookshelf(BID, title, writerLast, writerFirst, genre, "in library");
+			manager.persist(newBook);
+			manager.getTransaction().commit();
+			manager.close();
+			emf.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		return array;
 	}
-	
 
 	@Override
-	public String addNewUser(String admin, String username, String password, String name, String surname, String telephone, String address) throws JsonProcessingException {
+	public String addNewUser(String admin, String username, String password, String name, String surname,
+			String telephone, String address) throws JsonProcessingException {
 		String UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager.createQuery(
-				"SELECT UID FROM Autorisation WHERE UID= :uid")
+		List<Object[]> objects = manager.createQuery("SELECT UID FROM Autorisation WHERE UID= :uid")
 				.setParameter("uid", UID).getResultList();
 		List<Autorisation> auth = new ArrayList<>(objects.size());
 		for (Object[] obj : objects) {
@@ -564,18 +563,19 @@ public class ConverterDAOImpl implements ConverterDAO {
 			UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
 		}
 		try {
-				manager.getTransaction().begin();
-				Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone, address);
-				manager.persist(autorisation);
-				manager.getTransaction().commit();
-				manager.close();
-				emf.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			manager.getTransaction().begin();
+			Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone,
+					address);
+			manager.persist(autorisation);
+			manager.getTransaction().commit();
+			manager.close();
+			emf.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return "OK";
 	}
-	
+
 	@Override
 	public String getBooksList() throws JsonProcessingException {
 		String resultArray = null;
@@ -583,20 +583,21 @@ public class ConverterDAOImpl implements ConverterDAO {
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager.createQuery(
-				"SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
-				+ "IssuedDate, Period, FINE FROM Bookshelf").getResultList();		
+		List<Object[]> objects = manager
+				.createQuery("SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
+						+ "IssuedDate, Period, FINE FROM Bookshelf")
+				.getResultList();
 		List<Bookshelf> books = new ArrayList<>(objects.size());
 		for (Object[] obj : objects) {
 			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
 					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8]));
 		}
-		for(Bookshelf b: books) {
-			if(!b.getIssuedDate().equals("in library")) {
+		for (Bookshelf b : books) {
+			if (!b.getIssuedDate().equals("in library")) {
 				b.setIssuedDate("borrowed");
 			}
 		}
-			resultArray = mapper.writeValueAsString(books);
+		resultArray = mapper.writeValueAsString(books);
 		manager.close();
 		emf.close();
 		return resultArray;
@@ -604,11 +605,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getLoanedBooks(String user) throws SQLException {
-		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE from (\n" + 
-				"SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE\n" + 
-				"FROM Autorisation\n" + 
-				"INNER JOIN Bookshelf ON Autorisation.UID = Bookshelf.UID\n" + 
-				") tab where UID = ?";
+		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE from (\n"
+				+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE\n"
+				+ "FROM Autorisation\n" + "INNER JOIN Bookshelf ON Autorisation.UID = Bookshelf.UID\n"
+				+ ") tab where UID = ?";
 		LocalDate issuedDate;
 		LocalDate today = LocalDate.now();
 		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -618,7 +618,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 		ps.setString(1, user);
 		ResultSet rs = ps.executeQuery();
 		JSONArray array = new JSONArray();
-		float issue = 0;
 		while (rs.next()) {
 			JSONObject output = new JSONObject();
 			long period = 0;
@@ -629,22 +628,21 @@ public class ConverterDAOImpl implements ConverterDAO {
 			output.put("book", rs.getString(4));
 			output.put("author", rs.getString(5));
 			output.put("bid", rs.getString(6));
-			issuedDate = LocalDate.parse(rs.getString(7));
-			period = ChronoUnit.DAYS.between(issuedDate, today);
+				issuedDate = LocalDate.parse(rs.getString(7));
+				period = ChronoUnit.DAYS.between(issuedDate, today);
 			output.put("issuedDate", rs.getString(7));
 			output.put("period", period);
-			if(period > 30) {
+			if (period > 30) {
 				fine += 0.50 * (period - 30);
-				issue += fine;
 			}
-			output.put("fine", issue);
+			output.put("fine", fine);
 			array.put(output);
 			Statement st = conne.createStatement();
-			st.executeUpdate("UPDATE currencyconverter.Bookshelf SET FINE = '"+ String.valueOf(fine) +"', Period = '"+period+"' WHERE BID = '"+rs.getString(6)+"' AND UID = '"+ rs.getString(1)+"'");
+			st.executeUpdate("UPDATE currencyconverter.Bookshelf SET FINE = '" + String.valueOf(fine) + "', Period = '"
+					+ period + "' WHERE BID = '" + rs.getString(6) + "' AND UID = '" + rs.getString(1) + "'");
 			st.close();
 		}
 		conne.close();
-		
 		return array.toString();
 	}
 
@@ -656,7 +654,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		ps.setString(1, user);
 		ResultSet rs = ps.executeQuery();
 		JSONArray array = new JSONArray();
-		while(rs.next()) {
+		while (rs.next()) {
 			JSONObject obj = new JSONObject();
 			obj.put("name", rs.getString(2));
 			obj.put("surname", rs.getString(3));
@@ -674,12 +672,12 @@ public class ConverterDAOImpl implements ConverterDAO {
 		Connection conn = connect();
 		String sql = "UPDATE currencyconverter.Bookshelf SET UID = ? , IssuedDate = ? WHERE BID = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
-			ps.setString(1, user);
-			ps.setString(2, today.toString());
-			ps.setString(3, book);
-			ps.executeUpdate();
-			ps.close();
-			conn.close();
+		ps.setString(1, user);
+		ps.setString(2, today.toString());
+		ps.setString(3, book);
+		ps.executeUpdate();
+		ps.close();
+		conn.close();
 		return null;
 	}
 
@@ -688,13 +686,23 @@ public class ConverterDAOImpl implements ConverterDAO {
 		Connection conn = connect();
 		String sql = "UPDATE currencyconverter.Bookshelf SET UID = '' , IssuedDate = 'in library', Period = 0 , FINE = 0 WHERE BID = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
-			ps.setString(1, book);
-			ps.executeUpdate();
-			ps.close();
-			conn.close();
+		ps.setString(1, book);
+		ps.executeUpdate();
+		ps.close();
+		conn.close();
 		return null;
 	}
-	
-	
-	
+
+	@Override
+	public String deleteUser(String user) throws SQLException {
+		Connection conn = connect();
+		String sql = "delete from autorisation where UID = ?";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ps.setString(1, user);
+		ps.executeUpdate();
+		ps.close();
+		conn.close();
+		return null;
+	}
+
 }

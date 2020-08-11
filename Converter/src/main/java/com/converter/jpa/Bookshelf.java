@@ -1,7 +1,5 @@
 package com.converter.jpa;
 
-import java.sql.Date;
-
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
@@ -51,6 +49,10 @@ public class Bookshelf {
 		AuthorFirstName = writerFirst;
 		BookGenre = genre;
 		IssuedDate = issuedDate;
+	}
+
+	public Bookshelf(String bID) {
+		BID = bID;
 	}
 
 	public String getBID() {
