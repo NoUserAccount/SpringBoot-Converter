@@ -15,6 +15,7 @@ public class Autorisation {
 	private String LastName;
 	private String Telephone;
 	private String Address;
+	private String Email;
 
 	public Autorisation() {
 	}
@@ -30,6 +31,20 @@ public class Autorisation {
 		LastName = lastName;
 		Telephone = telephone;
 		Address = address;
+	}
+	
+	public Autorisation(String uID, String administrator, String username, String password, String firstName,
+			String lastName, String telephone, String address, String email) {
+		super();
+		UID = uID;
+		Administrator = administrator;
+		Username = username;
+		Passwords = password;
+		FirstName = firstName;
+		LastName = lastName;
+		Telephone = telephone;
+		Address = address;
+		Email = email;
 	}
 
 	public Autorisation(String uID) {
@@ -100,11 +115,22 @@ public class Autorisation {
 		Address = address;
 	}
 
+	public String getEmail() {
+		return Email;
+	}
+
+	public void setEmail(String email) {
+		Email = email;
+	}
+
+
 	@Override
 	public String toString() {
 		return "Autorisation [UID=" + UID + ", Administrator=" + Administrator + ", Username=" + Username
-				+ ", Password=" + Passwords + ", FirstName=" + FirstName + ", LastName=" + LastName + ", Telephone="
-				+ Telephone + ", Address=" + Address + "]";
+				+ ", Passwords=" + Passwords + ", FirstName=" + FirstName + ", LastName=" + LastName + ", Telephone="
+				+ Telephone + ", Address=" + Address + ", Email=" + Email + "]";
 	}
+
+
 
 }

@@ -19,10 +19,10 @@ public class ConverterApplication extends SpringBootServletInitializer {
     }
     /**
      * Used when run as WAR
-     */
+     
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
         return builder.sources(ConverterApplication.class);
-    }
+    }*/
 	
 }

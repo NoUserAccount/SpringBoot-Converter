@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import com.converter.jpa.Autorisation;
 import com.converter.jpa.Bookshelf;
 import com.converter.jpa.Currency;
+import com.converter.jpa.Weather;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -87,7 +88,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String option = "";
 		String dateMod = datum.substring(8, 10) + "." + datum.substring(5, 7) + "." + datum.substring(0, 4);
 		String url = "http://api.hnb.hr/tecajn/v1?datum=" + datum;
-		JSONArray arr;
+		JSONArray array;
 		Connection conne = connect();
 		int numOfRows = 0;
 		try {
@@ -105,7 +106,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 				if ("[]".equals(response.toString())) {
 					return "wrong date";
 				}
-				arr = new JSONArray(response.toString());
+				array = new JSONArray(response.toString());
+				String jsonArray = array.toString().replaceAll("ž", "z");
+				JSONArray arr = new JSONArray(jsonArray);
 				PreparedStatement pst = conne.prepareStatement(sqlUpdate);
 				pst.setString(1, "HRK");
 				pst.setInt(2, 1);
@@ -120,7 +123,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 					vrijednost = Float
 							.parseFloat(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 					jedinica = arr.getJSONObject(i).getInt("Jedinica");
-					drzava = arr.getJSONObject(i).getString("Država");
+					drzava = arr.getJSONObject(i).getString("Drzava");
 					option = valuta + " " + drzava;
 					try {
 						PreparedStatement ps = conne.prepareStatement(sqlUpdate);
@@ -281,7 +284,10 @@ public class ConverterDAOImpl implements ConverterDAO {
 				conne.close();
 			}
 		}
-		es.emailClient("Pošiljatelj:" + name + " " + surname + " (" + contact + ") " + "\n\n\n" + message + "\n\n ");
+		String RECIPIENT = "madagasakaria@gmail.com";
+		String SUBJECT = "Contact form message";
+		String MAIL_MESSAGE = message + "\n\n" + name + " " + surname + "\n\n" + contact;
+		es.emailClient(RECIPIENT, SUBJECT, MAIL_MESSAGE);
 		return "Message sent!";
 	}
 
@@ -390,42 +396,105 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getWeatherStatus(String grad) {
+		LocalDate today = LocalDate.now();
+		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		today.format(formater);
+		ObjectMapper mapper = new ObjectMapper();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
 		JSONObject obj;
 		String url = "http://api.weatherstack.com/current?access_key=1f87991019336577bfd3c34fd77644ba&query="
 				+ grad.replace(" ", "%20");
 		String response;
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
-
-		if ((response = getURL(url).toString()) != null) {
-			obj = new JSONObject(response.toString());
-			JSONObject request = new JSONObject();
-			try {
-				request = obj.getJSONObject("request");
-			} catch (JSONException e) {
-				return "[]";
+		String select = "SELECT COUNT(*) FROM Weather where dates = ? and querye LIKE ?";
+		String jsonArray = "empty";
+		Connection conn = connect();
+		try {
+			PreparedStatement ps = conn.prepareStatement(select);
+			ps.setString(1, today.toString());
+			ps.setString(2, "%" + grad + "%");
+			ResultSet rs;
+			rs = ps.executeQuery();
+			int numOfRows = 0;
+			while (rs.next()) {
+				numOfRows = rs.getInt(1);
 			}
-			JSONObject location = obj.getJSONObject("location");
-			JSONObject current = obj.getJSONObject("current");
-			output.put("query", request.getString("query"));
-			output.put("region", location.getString("region"));
-			output.put("observation_time", current.getString("observation_time"));
-			output.put("temperature", current.get("temperature").toString());
-			output.put("description", current.getJSONArray("weather_descriptions").getString(0));
-			output.put("weather_icon", current.getJSONArray("weather_icons").getString(0));
-			output.put("wind_speed", current.get("wind_speed").toString());
-			output.put("wind_direction", current.get("wind_dir").toString());
-			output.put("pressure", current.get("pressure").toString());
-			output.put("precipitation", current.get("precip").toString());
-			output.put("humidity", current.get("humidity").toString());
-			output.put("cloudcover", current.get("cloudcover").toString());
-			output.put("feelslike", current.get("feelslike").toString());
-			output.put("uv_index", current.get("uv_index").toString());
-			output.put("visibility", current.get("visibility").toString());
-			output.put("isDay", current.get("is_day").toString());
-			array.put(output);
+			if (numOfRows == 0) {
+				if ((response = getURL(url).toString()) != null) {
+					obj = new JSONObject(response.toString());
+					JSONObject request = new JSONObject();
+					try {
+						request = obj.getJSONObject("request");
+					} catch (JSONException e) {
+						return "[]";
+					}
+					JSONObject location = obj.getJSONObject("location");
+					JSONObject current = obj.getJSONObject("current");
+					output.put("query", request.getString("query"));
+					output.put("region", location.getString("region"));
+					output.put("observationTime", current.getString("observation_time"));
+					output.put("temperature", current.get("temperature").toString());
+					output.put("description", current.getJSONArray("weather_descriptions").getString(0));
+					output.put("weatherIcon", current.getJSONArray("weather_icons").getString(0));
+					output.put("windSpeed", current.get("wind_speed").toString());
+					output.put("windDirection", current.get("wind_dir").toString());
+					output.put("pressure", current.get("pressure").toString());
+					output.put("precipitation", current.get("precip").toString());
+					output.put("humidity", current.get("humidity").toString());
+					output.put("cloudcover", current.get("cloudcover").toString());
+					output.put("feelsLike", current.get("feelslike").toString());
+					output.put("uvIndex", current.get("uv_index").toString());
+					output.put("visibility", current.get("visibility").toString());
+					output.put("isDay", current.get("is_day").toString());
+					array.put(output);
+					jsonArray = array.toString();
+
+					try {
+						manager.getTransaction().begin();
+						Weather weather = new Weather(request.getString("query"), location.getString("region"),
+								current.getString("observation_time"), current.get("temperature").toString(),
+								current.getJSONArray("weather_descriptions").getString(0),
+								current.getJSONArray("weather_icons").getString(0),
+								current.get("wind_speed").toString(), current.get("wind_dir").toString(),
+								current.get("pressure").toString(), current.get("precip").toString(),
+								current.get("humidity").toString(), current.get("cloudcover").toString(),
+								current.get("feelslike").toString(), current.get("uv_index").toString(),
+								current.get("visibility").toString(), current.get("is_day").toString(),
+								today.toString());
+						manager.persist(weather);
+						manager.getTransaction().commit();
+						manager.close();
+						emf.close();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object[]> objects = manager.createQuery(
+						"select querye, region, observationTime,temperature, descriptions, weatherIcon, windSpeed, windDirection,"
+								+ " pressure, precipitation, humidity, cloudcover, feelsLike, uvIndex, visibility, isDay, dates "
+								+ "from Weather where dates = :datum and querye like :grad")
+						.setParameter("datum", today.toString()).setParameter("grad", "%" + grad + "%").getResultList();
+				List<Weather> forecast = new ArrayList<>(objects.size());
+				for (Object[] o : objects) {
+					forecast.add(new Weather((String) o[0], (String) o[1], (String) o[2], (String) o[3], (String) o[4],
+							(String) o[5], (String) o[6], (String) o[7], (String) o[8], (String) o[9], (String) o[10],
+							(String) o[11], (String) o[12], (String) o[13], (String) o[14], (String) o[15],
+							(String) o[16]));
+				}
+				jsonArray = mapper.writeValueAsString(forecast);
+				manager.close();
+				emf.close();
+				conn.close();
+			}
+
+		} catch (SQLException | JsonProcessingException e1) {
+			e1.printStackTrace();
 		}
-		return array.toString();
+		return jsonArray;
 	}
 
 	@Override
@@ -434,7 +503,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		LocalDate daysAgo = LocalDate.now().minusDays(365);
 		String url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=" + daysAgo
 				+ "&endtime=" + today + "&"
-				+ "minmagnitude=3&minlongitude=13.040373&maxlongitude=19.944292&minlatitude=41.101707&maxlatitude=47.239711";
+				+ "minmagnitude=0&minlongitude=13.040373&maxlongitude=19.944292&minlatitude=41.101707&maxlatitude=47.239711";
 		SimpleDateFormat dt1 = new SimpleDateFormat("dd.MM.yyyy hh:mm");
 		String response;
 		JSONObject obj;
@@ -484,6 +553,77 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String autheticateUser(String username, String password) {
+		try {
+			String users = "select uid from autorisation";
+			String update = "update currencyconverter.Bookshelf set Warning = ? where UID = ? and BID = ?";
+			String sql = "select\n"
+					+ " tab.UID, tab.BID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName,\n"
+					+ "  tab.IssuedDate, tab.Period, tab.FINE , tab.Email, tab.Warning\n" + "from (\n"
+					+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, \n"
+					+ "Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, \n"
+					+ "Bookshelf.Period, Bookshelf.FINE, Autorisation.Email , Bookshelf.Warning\n"
+					+ "FROM Autorisation\n" + "INNER JOIN Bookshelf \n" + "ON Autorisation.UID = Bookshelf.UID\n"
+					+ ") tab;";
+			Connection conne = connect();
+			PreparedStatement st = conne.prepareStatement(users);
+			ResultSet rs = st.executeQuery();
+			while (rs.next()) {
+				getLoanedBooks(rs.getString(1));
+			}
+			PreparedStatement ps = conne.prepareStatement(sql);
+			ResultSet resultSet = ps.executeQuery();
+			EmailService es = new EmailService();
+			while (resultSet.next()) {
+				float fine = Float.valueOf(resultSet.getString(9));
+				String warning = "";
+				if (fine != 0) {
+					String name = resultSet.getString(3) + " " + resultSet.getString(4);
+					String book = resultSet.getString(5) + ", " + resultSet.getString(6);
+					String issued = resultSet.getString(7);
+					String warningDB = resultSet.getString(11);
+					boolean execute = true;
+					String EMAIL = resultSet.getString(10);
+					String SUBJECT = "Library Bookshelf - delay notice";
+					String EMAIL_TEXT = "Dear " + name + ",\n\n"
+							+ "we inform you that you are late in returning the book that you borowed on " + issued
+							+ ", " + book + "\nand your debit is " + fine + "kn and rising 0,50kn/day."
+							+ "\n\n\nSincerely, \n\nlibrary Bookshelf!";
+					if (fine >= 0.50 && fine < 15 && (warningDB == null || warningDB.contentEquals(""))) {
+						warning = "SENT";
+						es.emailClient(EMAIL, SUBJECT, EMAIL_TEXT);
+					} else if (fine >= 15.0 && fine <= 30
+							&& (warningDB.contentEquals("SENT") || warningDB.contentEquals("") || warningDB == null)) {
+						warning = "FIRST";
+						es.emailClient(EMAIL, SUBJECT, EMAIL_TEXT);
+					} else if (fine > 30 && fine <= 50 && (warningDB.contentEquals("FIRST")
+							|| warningDB.contentEquals("SENT") || warningDB.contentEquals("") || warningDB == null)) {
+						warning = "SECOND";
+						es.emailClient(EMAIL, SUBJECT, EMAIL_TEXT);
+					} else if (fine > 50 && (warningDB.contentEquals("SECOND") || warningDB.contentEquals("FIRST")
+							|| warningDB.contentEquals("SENT") || warningDB.contentEquals("") || warningDB == null)) {
+						warning = "THIRD";
+						es.emailClient(EMAIL, SUBJECT, EMAIL_TEXT);
+					} else {
+						execute = false;
+					}
+					if (execute) {
+						PreparedStatement statement = conne.prepareStatement(update);
+						statement.setString(1, warning);
+						statement.setString(2, resultSet.getString(1));
+						statement.setString(3, resultSet.getString(2));
+						statement.executeUpdate();
+						statement.close();
+					}
+				}
+			}
+			conne.close();
+			st.close();
+			rs.close();
+			resultSet.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		String resultArray = null;
 		ObjectMapper mapper = new ObjectMapper();
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
@@ -517,8 +657,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			throws JsonProcessingException {
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
-		String array = "[]";
 		String BID = "000000000";
+		JSONObject object = new JSONObject();
 		while (true) {
 			BID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
 			@SuppressWarnings("unchecked")
@@ -535,15 +675,16 @@ public class ConverterDAOImpl implements ConverterDAO {
 		try {
 			manager.getTransaction().begin();
 			Bookshelf newBook = new Bookshelf(BID, title, writerLast, writerFirst, genre, "in library");
+			object.put("id",BID);
 			manager.persist(newBook);
 			manager.getTransaction().commit();
 			manager.close();
 			emf.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			object.put("id", "0");
 		}
 
-		return array;
+		return object.toString();
 	}
 
 	@Override
@@ -578,19 +719,19 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getBooksList() throws JsonProcessingException {
-		String resultArray = null;
+		String resultArray = "[]";
 		ObjectMapper mapper = new ObjectMapper();
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
 		@SuppressWarnings("unchecked")
 		List<Object[]> objects = manager
 				.createQuery("SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
-						+ "IssuedDate, Period, FINE FROM Bookshelf")
+						+ "IssuedDate, Period, FINE, Warning FROM Bookshelf")
 				.getResultList();
 		List<Bookshelf> books = new ArrayList<>(objects.size());
 		for (Object[] obj : objects) {
 			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
-					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8]));
+					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8], (String) obj[9]));
 		}
 		for (Bookshelf b : books) {
 			if (!b.getIssuedDate().equals("in library")) {
@@ -605,8 +746,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getLoanedBooks(String user) throws SQLException {
-		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE from (\n"
-				+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE\n"
+		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE, tab.Warning from (\n"
+				+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE, Bookshelf.Warning\n"
 				+ "FROM Autorisation\n" + "INNER JOIN Bookshelf ON Autorisation.UID = Bookshelf.UID\n"
 				+ ") tab where UID = ?";
 		LocalDate issuedDate;
@@ -628,10 +769,11 @@ public class ConverterDAOImpl implements ConverterDAO {
 			output.put("book", rs.getString(4));
 			output.put("author", rs.getString(5));
 			output.put("bid", rs.getString(6));
-				issuedDate = LocalDate.parse(rs.getString(7));
-				period = ChronoUnit.DAYS.between(issuedDate, today);
+			issuedDate = LocalDate.parse(rs.getString(7));
+			period = ChronoUnit.DAYS.between(issuedDate, today);
 			output.put("issuedDate", rs.getString(7));
 			output.put("period", period);
+			output.put("warning", rs.getString(10));
 			if (period > 30) {
 				fine += 0.50 * (period - 30);
 			}
@@ -666,43 +808,69 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String loanBook(String user, String book) throws SQLException {
+		JSONObject obj = new JSONObject();
 		LocalDate today = LocalDate.now();
 		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		today.format(formater);
 		Connection conn = connect();
-		String sql = "UPDATE currencyconverter.Bookshelf SET UID = ? , IssuedDate = ? WHERE BID = ?";
-		PreparedStatement ps = conn.prepareStatement(sql);
-		ps.setString(1, user);
-		ps.setString(2, today.toString());
-		ps.setString(3, book);
-		ps.executeUpdate();
-		ps.close();
-		conn.close();
-		return null;
+		String sqlVerify = "select (SELECT IssuedDate FROM Bookshelf WHERE BID = ? ) as IssuedDate, (\n"
+				+ "select count(*) as BooksBorrowed from Bookshelf where UID = ? ) as BooksBorrowed";
+		String sql = "UPDATE currencyconverter.Bookshelf SET UID = ? , IssuedDate = ?, Warning = '' WHERE BID = ?";
+		PreparedStatement psVerify = conn.prepareStatement(sqlVerify);
+		psVerify.setString(1, book);
+		psVerify.setString(2, user);
+		ResultSet rs = psVerify.executeQuery();
+		while (rs.next()) {
+			if (rs.getInt(2) == 3) {
+				obj.put("return", "maximumThreeBorrowedBooks");
+				break;
+			}
+			if (rs.getString(1).equals("in library")) {
+				PreparedStatement ps = conn.prepareStatement(sql);
+				ps.setString(1, user);
+				ps.setString(2, today.toString());
+				ps.setString(3, book);
+				ps.executeUpdate();
+				ps.close();
+				psVerify.close();
+				conn.close();
+				obj.put("return", "updated");
+				break;
+			} else {
+				obj.put("return", "exist");
+				break;
+			}
+		}
+		return obj.toString();
+
 	}
 
 	@Override
 	public String returnBook(String book) throws SQLException {
+		JSONObject obj = new JSONObject();
 		Connection conn = connect();
-		String sql = "UPDATE currencyconverter.Bookshelf SET UID = '' , IssuedDate = 'in library', Period = 0 , FINE = 0 WHERE BID = ?";
+		String sql = "UPDATE currencyconverter.Bookshelf SET UID = '' , IssuedDate = 'in library', Period = 0 , FINE = 0, Warning = '' WHERE BID = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
 		ps.setString(1, book);
-		ps.executeUpdate();
+		int result = ps.executeUpdate();
 		ps.close();
 		conn.close();
-		return null;
+		obj.put("result", result);
+		return obj.toString();
 	}
 
 	@Override
 	public String deleteUser(String user) throws SQLException {
+		JSONObject obj = new JSONObject();
 		Connection conn = connect();
 		String sql = "delete from autorisation where UID = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
 		ps.setString(1, user);
-		ps.executeUpdate();
+		int result = ps.executeUpdate();
 		ps.close();
 		conn.close();
-		return null;
+		obj.put("result", result);
+		return obj.toString();
 	}
 
 }

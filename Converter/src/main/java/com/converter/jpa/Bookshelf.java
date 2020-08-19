@@ -16,6 +16,7 @@ public class Bookshelf {
 	private String IssuedDate;
 	private String Period;
 	private String FINE;
+	private String Warning;
 
 	public Bookshelf() {
 	};
@@ -29,7 +30,7 @@ public class Bookshelf {
 	}
 
 	public Bookshelf(String bID, String uID, String bookTitle, String authorLastName, String authorFirstName,
-			String bookGenre, String issuedDate, String period, String fINE) {
+			String bookGenre, String issuedDate, String period, String fINE, String warning) {
 		super();
 		BID = bID;
 		UID = uID;
@@ -40,6 +41,7 @@ public class Bookshelf {
 		IssuedDate = issuedDate;
 		Period = period;
 		FINE = fINE;
+		Warning = warning;
 	}
 
 	public Bookshelf(String bID, String title, String writerLast, String writerFirst, String genre, String issuedDate) {
@@ -126,12 +128,22 @@ public class Bookshelf {
 	public void setFINE(String fINE) {
 		FINE = fINE;
 	}
+	
+	public String getWarning() {
+		return Warning;
+	}
+
+	public void setWarning(String warning) {
+		Warning = warning;
+	}
 
 	@Override
 	public String toString() {
 		return "Bookshelf [BID=" + BID + ", UID=" + UID + ", BookTitle=" + BookTitle + ", AuthorLastName="
 				+ AuthorLastName + ", AuthorFirstName=" + AuthorFirstName + ", BookGenre=" + BookGenre + ", IssuedDate="
-				+ IssuedDate + ", Period=" + Period + ", FINE=" + FINE + "]";
+				+ IssuedDate + ", Period=" + Period + ", FINE=" + FINE + ", Warning=" + Warning + "]";
 	}
+
+
 
 }

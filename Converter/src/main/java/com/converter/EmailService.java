@@ -8,10 +8,10 @@ import java.util.Properties;
 
 public class EmailService {
 	
-    public void emailClient(String EMAIL_TEXT)  {
+    public void emailClient(String EMAIL_ADDRESS_RECIPIENT, String SUBJECT, String EMAIL_TEXT)  {
     	
-    	final String username = "zoran.bajcer@gmail.com";
-        final String password = "";
+    	final String username = "madagasakaria@gmail.com";
+        final String password = "library123456789library";
 
         Properties prop = new Properties();
 		prop.put("mail.smtp.host", "smtp.gmail.com");
@@ -28,12 +28,12 @@ public class EmailService {
                 });
         try {
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("zoran.bajcer@gmail.com"));
+            message.setFrom(new InternetAddress("madagasakaria@gmail.com"));
             message.setRecipients(
                     Message.RecipientType.TO,
-                    InternetAddress.parse("zoran.bajcer@gmail.com")
+                    InternetAddress.parse(EMAIL_ADDRESS_RECIPIENT)
             );
-            message.setSubject("New portfolio message!");
+            message.setSubject(SUBJECT);
             message.setText(EMAIL_TEXT);
 
             Transport.send(message);
