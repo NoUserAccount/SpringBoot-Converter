@@ -224,11 +224,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getChartData(String date) throws SQLException {
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		String dateMod = date.substring(8, 10) + "." + date.substring(5, 7) + "." + date.substring(0, 4);
 		String sqlSelect = "SELECT Jedinica, Vrijednost, Valuta FROM Currency WHERE Datum= ?";
 		Connection conne = connect();
@@ -427,8 +422,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 					JSONObject request = new JSONObject();
 					try {
 						request = obj.getJSONObject("request");
-					} catch (JSONException e) {
-						return "[]";
+					} catch (Exception e) {
+						jsonArray = null;
+						return jsonArray;
 					}
 					JSONObject location = obj.getJSONObject("location");
 					JSONObject current = obj.getJSONObject("current");
@@ -470,6 +466,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+				} else {
+					jsonArray = null;
 				}
 			} else {
 				@SuppressWarnings("unchecked")
@@ -553,6 +551,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String autheticateUser(String username, String password) {
+		username = username.replaceAll(" ", "");
+		password = password.replaceAll(" ", "");
 		try {
 			String users = "select uid from autorisation";
 			String update = "update currencyconverter.Bookshelf set Warning = ? where UID = ? and BID = ?";
@@ -675,7 +675,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		try {
 			manager.getTransaction().begin();
 			Bookshelf newBook = new Bookshelf(BID, title, writerLast, writerFirst, genre, "in library");
-			object.put("id",BID);
+			object.put("id", BID);
 			manager.persist(newBook);
 			manager.getTransaction().commit();
 			manager.close();
@@ -689,24 +689,32 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String addNewUser(String admin, String username, String password, String name, String surname,
-			String telephone, String address) throws JsonProcessingException {
+			String telephone, String address, String email) throws JsonProcessingException {
+		admin = admin.contentEquals("administrator") ? "true" : "false";
+		username = username.replaceAll(" ", "");
+		password = password.replaceAll(" ", "");
+		email = email.replaceAll(" ", "");
 		String UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
-		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager.createQuery("SELECT UID FROM Autorisation WHERE UID= :uid")
-				.setParameter("uid", UID).getResultList();
-		List<Autorisation> auth = new ArrayList<>(objects.size());
-		for (Object[] obj : objects) {
-			auth.add(new Autorisation((String) obj[0]));
-		}
-		if (auth.size() != 0) {
-			UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+		while (true) {
+			@SuppressWarnings("unchecked")
+			List<Object[]> objects = manager.createQuery("SELECT UID FROM Autorisation WHERE UID= :uid")
+					.setParameter("uid", UID).getResultList();
+			List<Autorisation> auth = new ArrayList<>(objects.size());
+			for (Object[] obj : objects) {
+				auth.add(new Autorisation((String) obj[0]));
+			}
+			if (auth.size() != 0) {
+				UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+			} else {
+				break;
+			}
 		}
 		try {
 			manager.getTransaction().begin();
 			Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone,
-					address);
+					address, email);
 			manager.persist(autorisation);
 			manager.getTransaction().commit();
 			manager.close();
@@ -746,8 +754,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getLoanedBooks(String user) throws SQLException {
-		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE, tab.Warning from (\n"
-				+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE, Bookshelf.Warning\n"
+		user = user.replaceAll(" ", "");
+		String sqlSelect = "select tab.UID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName, tab.BID, tab.IssuedDate, tab.Period, tab.FINE, tab.Warning, tab.LoanExtendRequest from (\n"
+				+ "SELECT Autorisation.UID, Bookshelf.BookTitle, Bookshelf.AuthorLastName, Autorisation.FirstName, Autorisation.LastName, Bookshelf.BID, Bookshelf.IssuedDate, Bookshelf.Period, Bookshelf.FINE, Bookshelf.Warning, Bookshelf.LoanExtendRequest\n"
 				+ "FROM Autorisation\n" + "INNER JOIN Bookshelf ON Autorisation.UID = Bookshelf.UID\n"
 				+ ") tab where UID = ?";
 		LocalDate issuedDate;
@@ -774,6 +783,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			output.put("issuedDate", rs.getString(7));
 			output.put("period", period);
 			output.put("warning", rs.getString(10));
+			output.put("extend", rs.getString(11));
 			if (period > 30) {
 				fine += 0.50 * (period - 30);
 			}
@@ -790,7 +800,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String verifyUser(String user) throws SQLException {
-		String select = "SELECT UID, FirstName, LastName FROM AUTORISATION WHERE UID = ?";
+		user = user.replaceAll(" ", "");
+		String select = "SELECT UID, FirstName, LastName, Telephone, Address, Email FROM AUTORISATION WHERE UID = ?";
 		Connection conn = connect();
 		PreparedStatement ps = conn.prepareStatement(select);
 		ps.setString(1, user);
@@ -800,6 +811,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 			JSONObject obj = new JSONObject();
 			obj.put("name", rs.getString(2));
 			obj.put("surname", rs.getString(3));
+			obj.put("Telephone", rs.getString(4));
+			obj.put("Address", rs.getString(5));
+			obj.put("email", rs.getString(6));
 			array.put(obj);
 		}
 		conn.close();
@@ -847,6 +861,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String returnBook(String book) throws SQLException {
+		book = book.replaceAll(" ", "");
 		JSONObject obj = new JSONObject();
 		Connection conn = connect();
 		String sql = "UPDATE currencyconverter.Bookshelf SET UID = '' , IssuedDate = 'in library', Period = 0 , FINE = 0, Warning = '' WHERE BID = ?";
@@ -873,4 +888,96 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return obj.toString();
 	}
 
+	@Override
+	public String extendLoan(String user, String book, String admin) throws SQLException {
+		EmailService es = new EmailService();
+		String EMAIL_ADDRESS_RECIPIENT = "madagasakaria@gmail.com";
+		String SUBJECT = "User extend loan request";
+		String EMAIL_TEXT = "New user extend loan request: \n\n\n User ID: " + user + " \n Book ID: " + book;
+		JSONObject obj = new JSONObject();
+		Connection conn = connect();
+		LocalDate today = LocalDate.now();
+		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		today.format(formater);
+		String sqlUpdate = "UPDATE currencyConverter.Bookshelf SET IssuedDate = ? , LoanExtendRequest = ? WHERE BID = ? AND UID = ?";
+		String sql = "UPDATE currencyConverter.Bookshelf SET LoanExtendRequest = ? WHERE BID = ? AND UID = ?";
+		if (admin.equals("true")) {
+			PreparedStatement ps = conn.prepareStatement(sqlUpdate);
+			ps.setString(1, today.toString());
+			ps.setString(2, "EXTENDED");
+			ps.setString(3, book);
+			ps.setString(4, user);
+			int rs = ps.executeUpdate();
+			obj.put("response", String.valueOf(rs));
+			ps.close();
+			conn.close();
+		} else if (admin.contentEquals("false")) {
+			PreparedStatement psInsert = conn.prepareStatement(sql);
+			psInsert.setString(1, "SENT");
+			psInsert.setString(2, book);
+			psInsert.setString(3, user);
+			psInsert.executeUpdate();
+			es.emailClient(EMAIL_ADDRESS_RECIPIENT, SUBJECT, EMAIL_TEXT);
+			obj.put("response", "sent");
+			psInsert.close();
+			conn.close();
+		} else {
+			obj.put("response", "error");
+			conn.close();
+		}
+		return obj.toString();
+	}
+
+	@Override
+	public String registerNewUser(String name, String surname, String email, String telephone, String address,
+			String username, String password) throws SQLException {
+		String admin = "false";
+		JSONObject object = new JSONObject();
+		String sql = "SELECT COUNT(*) FROM Autorisation where Username = ?";
+		Connection conn = connect();
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ps.setString(1, username);
+		ResultSet rs = ps.executeQuery();
+		while(rs.next()) {
+			if(rs.getInt(1) == 0) {
+				String UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+				EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+				EntityManager manager = emf.createEntityManager();
+				while (true) {
+					@SuppressWarnings("unchecked")
+					List<Object[]> objects = manager.createQuery("SELECT UID FROM Autorisation WHERE UID= :uid")
+							.setParameter("uid", UID).getResultList();
+					List<Autorisation> auth = new ArrayList<>(objects.size());
+					for (Object[] obj : objects) {
+						auth.add(new Autorisation((String) obj[0]));
+					}
+					if (auth.size() != 0) {
+						UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
+					} else {
+						break;
+					}
+				}
+				try {
+					manager.getTransaction().begin();
+					Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone,
+							address, email);
+					manager.persist(autorisation);
+					manager.getTransaction().commit();
+					manager.close();
+					emf.close();
+					object.put("response",UID.toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				object.put("response", "exist");
+
+			}
+			
+		}
+		conn.close();
+		ps.close();
+		rs.close();
+		return object.toString();
+	}
 }

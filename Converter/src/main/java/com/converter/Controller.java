@@ -1,17 +1,14 @@
 package com.converter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -21,9 +18,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.converter.jpa.Bookshelf;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -33,6 +32,8 @@ public class Controller {
 	ConverterService cService;
 	@Autowired
 	Statistika stat;
+	@Autowired
+	ConverterDAO cDao;
 
 	@RequestMapping(value = "/converter/{date}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String jsonByDate(@PathVariable(value = "date") 
@@ -71,7 +72,7 @@ public class Controller {
 	
 	@RequestMapping(value = "/earthquake", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String getEarthquakeData () throws SQLException {
-		return cService.getEarthquake();
+		return cDao.getEarthquake();
 	}
 	
 	@RequestMapping(value = "/authenticateUser/{username}/{password}", method = RequestMethod.GET)
@@ -90,7 +91,7 @@ public class Controller {
 		return cService.addBookToBookshelf(title,writerLast,writerFirst,genre).toString();
 	}
 	
-	@RequestMapping(value = "/addNewUser/{admin}/{username}/{password}/{name}/{surname}/{telephone}/{address}", method = RequestMethod.GET)
+	@RequestMapping(value = "/addNewUser/{admin}/{username}/{password}/{name}/{surname}/{telephone}/{address}/{email}", method = RequestMethod.GET)
 	public @ResponseBody String addNewUser(
 			@PathVariable(value = "admin") String admin,
 			@PathVariable(value = "username") String username,
@@ -98,8 +99,9 @@ public class Controller {
 			@PathVariable(value = "name") String name,
 			@PathVariable(value = "surname") String surname,
 			@PathVariable(value = "telephone") String telephone,
-			@PathVariable(value = "address") String address) throws ParseException, SQLException, JsonProcessingException {
-		return cService.addNewUser(admin,username,password,name,surname,telephone,address);
+			@PathVariable(value = "address") String address,
+			@PathVariable(value = "email") String email) throws ParseException, SQLException, JsonProcessingException {
+		return cService.addNewUser(admin,username,password,name,surname,telephone,address,email);
 	}
 	
 	@RequestMapping(value = "/delete/{user}", method = RequestMethod.GET, produces = "application/json")
@@ -110,7 +112,7 @@ public class Controller {
 	
 	@RequestMapping(value = "/books", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String getBooks() throws SQLException, JsonProcessingException {
-		return cService.getBooksList();
+		return cDao.getBooksList();
 	}
 	
 	@RequestMapping(value = "/userLoan/{user}", method = RequestMethod.GET, produces = "application/json")
@@ -125,6 +127,14 @@ public class Controller {
 		return cService.loanBook(user, book);
 	}
 	
+	@RequestMapping(value = "/extendLoan/{user}/{book}/{admin}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String extendLoan(
+			@PathVariable(value="user") String user,
+			@PathVariable(value="book") String book,
+			@PathVariable(value="admin") String admin) throws SQLException, JsonProcessingException {
+		return cService.extendLoan(user, book, admin);
+	}
+	
 	@RequestMapping(value = "/return/{book}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String postReturnBook(
 			@PathVariable(value="book") String book) throws SQLException, JsonProcessingException {
@@ -135,49 +145,39 @@ public class Controller {
 	public @ResponseBody String verifyUser(@PathVariable(value="user") String user) throws SQLException {
 		return cService.verifyUser(user);
 	}
+		
+	@RequestMapping(value = "/register/{firstName}/{lastName}/{email}/{telephone}/{address}/{username}/{password}", method = RequestMethod.GET)
+	public @ResponseBody String registerUser(
+			@PathVariable(value = "firstName") String name,
+			@PathVariable(value = "lastName") String surname,
+			@PathVariable(value = "email") String email,
+			@PathVariable(value = "telephone") String telephone,
+			@PathVariable(value = "address") String address,
+			@PathVariable(value = "username") String username,
+			@PathVariable(value = "password") String password) throws ParseException, SQLException, JsonProcessingException {
+		return cService.registerNewUser(name,surname,email,telephone,address,username,password);
+	}
 	
 	@RequestMapping(value = "/test", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String test() throws SQLException, IOException {
-		String imageUrl = "http://www.avajava.com/images/avajavalogo.jpg";
-	    String destinationFile = "image.jpg";
-		URL url = new URL(imageUrl);
-	    InputStream is = url.openStream();
-	    OutputStream os = new FileOutputStream(destinationFile);
-	    byte[] b = new byte[2048];
-	    int length;
-	    while ((length = is.read(b)) != -1) {
-	        os.write(b, 0, length);
-	    }
-	    is.close();
-	    os.close();	
-		ConverterDAOImpl impl = new ConverterDAOImpl();
-			File image = new File("image.jpg");
-			FileInputStream fis = new FileInputStream(image);
-			PreparedStatement st = null;
-			Connection c = impl.connect();
-			st = c.prepareStatement("insert into ImageBlob (ID, IMAGE) values (?,?)");
-			st.setString(1, "2");
-			st.setBinaryStream(2, (InputStream) fis, (int)(image.length()));
-			st.executeUpdate();
-			st.close();
+		String resultArray = "[]";
+		ObjectMapper mapper = new ObjectMapper();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager
+				.createQuery("SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
+						+ "IssuedDate, Period, FINE, Warning FROM Bookshelf WHERE FINE > 0")
+				.getResultList();
+		List<Bookshelf> books = new ArrayList<>(objects.size());
+		for (Object[] obj : objects) {
+			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
+					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8], (String) obj[9]));
+		}
+		resultArray = mapper.writeValueAsString(books);
+		manager.close();
+		emf.close();
+		return resultArray;
 			
-			
-		st = c.prepareStatement("select ID, IMAGE from ImageBlob");
-		ResultSet rs = st.executeQuery();
-			while(rs.next()) {
-				System.out.println(rs.getBinaryStream(2));
-			}
-			
-		return "";
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
 }

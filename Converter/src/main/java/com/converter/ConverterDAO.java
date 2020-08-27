@@ -7,11 +7,13 @@ import java.sql.SQLException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.springframework.stereotype.Repository;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
+@Repository
 public interface ConverterDAO {
 
 	public Connection connect();
@@ -24,19 +26,22 @@ public interface ConverterDAO {
 	public JSONArray login(String user, String psw) throws SQLException, JSONException;
 	public String getMessages() throws SQLException;
 	public String getWeather();
-	public String getChartData(String datum) throws SQLException;
 	public String getWeatherStatus(String grad);
 	String getEarthquake();
 	public String autheticateUser(String username, String password);
 	public String addNewBook(String title, String writerLast, String writerFirst, String genre) throws JsonProcessingException;
 	public String addNewUser(String admin, String username, String password, String name, String surname,
-			String telephone, String address) throws JsonProcessingException;
+			String telephone, String address, String email) throws JsonProcessingException;
 	String getBooksList() throws JsonProcessingException;
 	public String getLoanedBooks(String user) throws SQLException;
 	public String verifyUser(String user) throws SQLException;
 	public String loanBook(String user, String book) throws SQLException;
 	public String returnBook(String book) throws SQLException;
 	public String deleteUser(String user) throws SQLException;
+	public String extendLoan(String user, String book, String admin) throws SQLException;
+	public String registerNewUser(String name, String surname, String email, String telephone, String address,
+			String username, String password) throws SQLException;
+	String getChartData(String date) throws SQLException;
 
 
 
