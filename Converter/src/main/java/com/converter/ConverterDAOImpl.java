@@ -980,4 +980,41 @@ public class ConverterDAOImpl implements ConverterDAO {
 		rs.close();
 		return object.toString();
 	}
+	
+	@Override
+	public String getTvzRss() throws JSONException {
+		String url = "https://moj.tvz.hr//skini/mojrss/19889/480a9f9a45";
+		HttpURLConnection con = null;
+		String inputLine = "";
+		StringBuilder response = null;
+		InputStreamReader sr = null;
+		BufferedReader in = null;
+		String jsonPrettyPrintString = null;
+		JSONArray arrayOfItems = new JSONArray();
+		int PRETTY_PRINT_INDENT_FACTOR = 4;
+		if ((con = urlConnect(url)) != null) {
+			try {
+				sr = new InputStreamReader(con.getInputStream());
+				in = new BufferedReader(sr);
+				response = new StringBuilder();
+				while ((inputLine = in.readLine()) != null) {
+					response.append(inputLine);
+				}
+				sr.close();
+				in.close();
+				JSONObject xmlJSONObj = XML.toJSONObject(response.toString());
+				jsonPrettyPrintString = xmlJSONObj.toString(PRETTY_PRINT_INDENT_FACTOR);
+				JSONObject obj = new JSONObject(new JSONTokener(new StringReader(jsonPrettyPrintString)));
+				ObjectMapper mapper = new ObjectMapper();
+				JsonNode rootNode = mapper.readTree(obj.toString());
+				JsonNode rss = rootNode.iterator().next();
+				JsonNode channel = rss.get("channel");
+				JsonNode item = channel.get("item");
+				arrayOfItems = new JSONArray(item.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return arrayOfItems.toString();
+	}
 }

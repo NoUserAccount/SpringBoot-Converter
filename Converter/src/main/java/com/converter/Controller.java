@@ -3,13 +3,6 @@ package com.converter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,11 +11,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.converter.jpa.Bookshelf;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -158,26 +149,8 @@ public class Controller {
 		return cService.registerNewUser(name,surname,email,telephone,address,username,password);
 	}
 	
-	@RequestMapping(value = "/test", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/tvz", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String test() throws SQLException, IOException {
-		String resultArray = "[]";
-		ObjectMapper mapper = new ObjectMapper();
-		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
-		EntityManager manager = emf.createEntityManager();
-		@SuppressWarnings("unchecked")
-		List<Object[]> objects = manager
-				.createQuery("SELECT BID, UID, BookTitle, AuthorLastName, AuthorFirstName, BookGenre, "
-						+ "IssuedDate, Period, FINE, Warning FROM Bookshelf WHERE FINE > 0")
-				.getResultList();
-		List<Bookshelf> books = new ArrayList<>(objects.size());
-		for (Object[] obj : objects) {
-			books.add(new Bookshelf((String) obj[0], (String) obj[1], (String) obj[2], (String) obj[3], (String) obj[4],
-					(String) obj[5], (String) obj[6], (String) obj[7], (String) obj[8], (String) obj[9]));
-		}
-		resultArray = mapper.writeValueAsString(books);
-		manager.close();
-		emf.close();
-		return resultArray;
-			
+		return cDao.getTvzRss();	
 	}
 }

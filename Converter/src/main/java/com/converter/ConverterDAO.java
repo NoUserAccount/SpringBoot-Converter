@@ -42,6 +42,7 @@ public interface ConverterDAO {
 	public String registerNewUser(String name, String surname, String email, String telephone, String address,
 			String username, String password) throws SQLException;
 	String getChartData(String date) throws SQLException;
+	String getTvzRss() throws JSONException;
 
 
 
