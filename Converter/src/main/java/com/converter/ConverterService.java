@@ -91,5 +91,10 @@ public class ConverterService {
 		password.replaceAll(" ","");
 		email.replaceAll(" ","");
 		return cDao.registerNewUser(name, surname, email, telephone, address, username, password);
+	}
+
+
+	public String xoSubmitScore(String playerOne, String playerTwo, String winner) throws SQLException {
+		return cDao.submitScore(playerOne, playerTwo, winner);
 	}	
 }

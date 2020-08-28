@@ -3,6 +3,7 @@
 	<name>SpringBoot-Converter</name>
 	<comment></comment>
 	<projects>
+		<project>Converter</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>

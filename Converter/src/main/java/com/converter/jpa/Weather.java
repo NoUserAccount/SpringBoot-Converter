@@ -24,7 +24,16 @@ public class Weather {
 	private String visibility;
 	private String isDay;
 	private String dates;
+	private String downloadHour;
 	
+	public String getDownloadHour() {
+		return downloadHour;
+	}
+
+	public void setDownloadHour(String downloadHour) {
+		this.downloadHour = downloadHour;
+	}
+
 	public Weather() {};
 	
 	public Weather(String querye, String region, String observationTime, String temperature, String descriptions,
@@ -51,6 +60,35 @@ public class Weather {
 		this.dates = dates;
 	}
 
+
+
+	
+	
+
+	public Weather(String querye, String region, String observationTime, String temperature, String descriptions,
+			String weatherIcon, String windSpeed, String windDirection, String pressure, String precipitation,
+			String humidity, String cloudcover, String feelsLike, String uvIndex, String visibility, String isDay,
+			String dates, String downloadHour) {
+		super();
+		this.querye = querye;
+		this.region = region;
+		this.observationTime = observationTime;
+		this.temperature = temperature;
+		this.descriptions = descriptions;
+		this.weatherIcon = weatherIcon;
+		this.windSpeed = windSpeed;
+		this.windDirection = windDirection;
+		this.pressure = pressure;
+		this.precipitation = precipitation;
+		this.humidity = humidity;
+		this.cloudcover = cloudcover;
+		this.feelsLike = feelsLike;
+		this.uvIndex = uvIndex;
+		this.visibility = visibility;
+		this.isDay = isDay;
+		this.dates = dates;
+		this.downloadHour = downloadHour;
+	}
 
 	public String getQuery() {
 		return querye;

@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -403,20 +404,68 @@ public class ConverterDAOImpl implements ConverterDAO {
 		String response;
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
-		String select = "SELECT COUNT(*) FROM Weather where dates = ? and querye LIKE ?";
+		String select = "SELECT querye, observationTime, dates, downloadHour FROM Weather WHERE querye like ? AND dates = ?";
 		String jsonArray = "empty";
 		Connection conn = connect();
 		try {
 			PreparedStatement ps = conn.prepareStatement(select);
-			ps.setString(1, today.toString());
-			ps.setString(2, "%" + grad + "%");
+			ps.setString(2, today.toString());
+			ps.setString(1, "%" + grad + "%");
 			ResultSet rs;
 			rs = ps.executeQuery();
-			int numOfRows = 0;
+
+			boolean exist = false;
+			LocalTime now = LocalTime.now();
+			System.out.println(now.getHour());
+			int localHour = now.getHour();
+			List<Integer> downloadArray = new ArrayList<>();
+
 			while (rs.next()) {
-				numOfRows = rs.getInt(1);
+				if (rs.getString(4) != null) {
+					downloadArray.add(Integer.valueOf(rs.getString(4)));
+				}
 			}
-			if (numOfRows == 0) {
+			if (downloadArray.size() != 0) {
+				for (int i = 0; i < downloadArray.size(); i++) {
+					if (localHour > 0 && localHour < 6) {
+						for (int j = 0; j < downloadArray.size(); j++) {
+							int x = Integer.valueOf(downloadArray.get(j));
+							if (x > 0 && x < 6) {
+								exist = true;
+								break;
+							}
+						}
+					}
+					if (localHour <= 6 && localHour < 12) {
+						for (int j = 0; j < downloadArray.size(); j++) {
+							int x = Integer.valueOf(downloadArray.get(j));
+							if (x >= 6 && x < 12) {
+								exist = true;
+								break;
+							}
+						}
+					}
+					if (localHour >= 12 && localHour < 18) {
+						for (int j = 0; j < downloadArray.size(); j++) {
+							int x = Integer.valueOf(downloadArray.get(j));
+							if (x >= 12 && x < 18) {
+								exist = true;
+								break;
+							}
+						}
+					}
+					if (localHour >= 18 && localHour < 24) {
+						for (int j = 0; j < downloadArray.size(); j++) {
+							int x = Integer.valueOf(downloadArray.get(j));
+							if (x >= 18 && x < 24) {
+								exist = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+			if (!exist) {
 				if ((response = getURL(url).toString()) != null) {
 					obj = new JSONObject(response.toString());
 					JSONObject request = new JSONObject();
@@ -458,7 +507,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 								current.get("humidity").toString(), current.get("cloudcover").toString(),
 								current.get("feelslike").toString(), current.get("uv_index").toString(),
 								current.get("visibility").toString(), current.get("is_day").toString(),
-								today.toString());
+								today.toString(), String.valueOf(localHour));
 						manager.persist(weather);
 						manager.getTransaction().commit();
 						manager.close();
@@ -474,8 +523,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 				List<Object[]> objects = manager.createQuery(
 						"select querye, region, observationTime,temperature, descriptions, weatherIcon, windSpeed, windDirection,"
 								+ " pressure, precipitation, humidity, cloudcover, feelsLike, uvIndex, visibility, isDay, dates "
-								+ "from Weather where dates = :datum and querye like :grad")
-						.setParameter("datum", today.toString()).setParameter("grad", "%" + grad + "%").getResultList();
+								+ "from Weather where dates = :datum and querye like :grad order by observationTime desc")
+						.setParameter("datum", today.toString()).setParameter("grad", "%" + grad + "%").setMaxResults(1).getResultList();
 				List<Weather> forecast = new ArrayList<>(objects.size());
 				for (Object[] o : objects) {
 					forecast.add(new Weather((String) o[0], (String) o[1], (String) o[2], (String) o[3], (String) o[4],
@@ -938,8 +987,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 		PreparedStatement ps = conn.prepareStatement(sql);
 		ps.setString(1, username);
 		ResultSet rs = ps.executeQuery();
-		while(rs.next()) {
-			if(rs.getInt(1) == 0) {
+		while (rs.next()) {
+			if (rs.getInt(1) == 0) {
 				String UID = Long.toString((long) ((Math.random() * (1000000000 - 99999999)) + 99999999));
 				EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 				EntityManager manager = emf.createEntityManager();
@@ -959,13 +1008,13 @@ public class ConverterDAOImpl implements ConverterDAO {
 				}
 				try {
 					manager.getTransaction().begin();
-					Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname, telephone,
-							address, email);
+					Autorisation autorisation = new Autorisation(UID, admin, username, password, name, surname,
+							telephone, address, email);
 					manager.persist(autorisation);
 					manager.getTransaction().commit();
 					manager.close();
 					emf.close();
-					object.put("response",UID.toString());
+					object.put("response", UID.toString());
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -973,14 +1022,14 @@ public class ConverterDAOImpl implements ConverterDAO {
 				object.put("response", "exist");
 
 			}
-			
+
 		}
 		conn.close();
 		ps.close();
 		rs.close();
 		return object.toString();
 	}
-	
+
 	@Override
 	public String getTvzRss() throws JSONException {
 		String url = "https://moj.tvz.hr//skini/mojrss/19889/480a9f9a45";
@@ -1017,4 +1066,99 @@ public class ConverterDAOImpl implements ConverterDAO {
 		}
 		return arrayOfItems.toString();
 	}
+	
+	
+	@Override
+	public String submitScore(String playerOne, String playerTwo, String winner) throws SQLException {
+		if (!playerOne.contentEquals("") && !playerTwo.contentEquals("") && !winner.contentEquals("looser")) {
+			Connection conn = connect();
+			String select = "SELECT count(*) FROM TicTacToe WHERE Player = ? AND Opponent = ?";
+			String insert = "INSERT INTO TicTacToe (Player, Opponent, Winner, Looser) VALUES(?,?,?,?)";
+			String updateWinner = "UPDATE TicTacToe SET Winner = Winner + 1 WHERE Player = ? AND Opponent = ?";
+			String updateLooser = "UPDATE TicTacToe SET Looser = Looser + 1 WHERE Player = ? AND Opponent = ?";
+			PreparedStatement ps = conn.prepareStatement(select);
+			ps.setString(1, playerOne);
+			ps.setString(2, playerTwo);
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()) {
+				if (rs.getInt(1) == 0) {
+					for (int i = 0; i < 2; i++) {
+						if (winner.contentEquals(playerOne)) {
+							switch (i) {
+							case 0:
+								PreparedStatement psInsert = conn.prepareStatement(insert);
+								psInsert.setString(1, playerOne);
+								psInsert.setString(2, playerTwo);
+								psInsert.setInt(3, 1);
+								psInsert.setInt(4, 0);
+								psInsert.execute();
+								break;
+							case 1:
+								PreparedStatement psInsertLooser = conn.prepareStatement(insert);
+								psInsertLooser.setString(1, playerTwo);
+								psInsertLooser.setString(2, playerOne);
+								psInsertLooser.setInt(3, 0);
+								psInsertLooser.setInt(4, 1);
+								psInsertLooser.execute();
+								break;
+							}
+						} else {
+							switch (i) {
+							case 0:
+								PreparedStatement psInsert = conn.prepareStatement(insert);
+								psInsert.setString(1, playerTwo);
+								psInsert.setString(2, playerOne);
+								psInsert.setInt(3, 1);
+								psInsert.setInt(4, 0);
+								psInsert.execute();
+								break;
+							case 1:
+								PreparedStatement psInsertLooser = conn.prepareStatement(insert);
+								psInsertLooser.setString(1, playerOne);
+								psInsertLooser.setString(2, playerTwo);
+								psInsertLooser.setInt(3, 0);
+								psInsertLooser.setInt(4, 1);
+								psInsertLooser.execute();
+								break;
+							}
+
+						}
+
+					}
+
+				} else {
+					for (int i = 0; i < 2; i++) {
+						switch (i) {
+						case 0:
+							PreparedStatement psUpdate = conn.prepareStatement(updateWinner);
+							psUpdate.setString(1, winner.contentEquals(playerOne) ? playerOne : playerTwo);
+							psUpdate.setString(2, winner.contentEquals(playerOne) ? playerTwo : playerOne);
+							psUpdate.executeUpdate();
+							break;
+						case 1:
+							PreparedStatement psUpdateLooser = conn.prepareStatement(updateLooser);
+							psUpdateLooser.setString(1, winner.contentEquals(playerOne) ? playerTwo : playerOne);
+							psUpdateLooser.setString(2, winner.contentEquals(playerOne) ? playerOne : playerTwo);
+							psUpdateLooser.executeUpdate();
+							break;
+						}
+					}
+				}
+			}
+			conn.close();
+		}
+		Connection conn = connect();
+		Statement ps = conn.createStatement();
+		ResultSet rs = ps.executeQuery("select player, sum(winner) as winner from tictactoe group by player order by winner desc limit 10");
+		JSONArray array = new JSONArray();
+		while(rs.next()) {
+			JSONObject obj = new JSONObject();
+			obj.put("player", rs.getString(1));
+			obj.put("score", rs.getString(2));
+			array.put(obj);
+		}
+		return array.toString();
+	}
+	
+	
 }

@@ -153,4 +153,13 @@ public class Controller {
 	public @ResponseBody String test() throws SQLException, IOException {
 		return cDao.getTvzRss();	
 	}
+	
+	@RequestMapping(value = "/xo/{playerOne}/{playerTwo}/{winner}", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String xoSubmitScore(
+			@PathVariable(value="playerOne") String playerOne,
+			@PathVariable(value="playerTwo") String playerTwo,
+			@PathVariable(value="winner") String winner) throws SQLException {
+		return cService.xoSubmitScore(playerOne, playerTwo, winner);
+	}
+	
 }
