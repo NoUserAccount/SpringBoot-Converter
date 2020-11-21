@@ -44,6 +44,7 @@ public interface ConverterDAO {
 	public String getChartData(String date) throws SQLException;
 	public String getTvzRss() throws JSONException;
 	public String submitScore(String playerOne, String playerTwo, String winner) throws SQLException;
+	public String getWeatherSearchHistory() throws JsonProcessingException, SQLException;
 
 
 

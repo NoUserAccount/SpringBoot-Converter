@@ -15,7 +15,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -54,7 +55,6 @@ public class ConverterDAOImpl implements ConverterDAO {
 	@Override
 	public String getCurrency(String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
 		Validacije val = new Validacije();
-		String responseFinal = "";
 		JSONObject output = new JSONObject();
 		JSONArray array = new JSONArray();
 		output.put("Srednji", 1);
@@ -65,8 +65,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		array.put(output);
 		if (val.validacijaDatuma(date)) {
 			if ("ok".equals(assureDate(date))) {
-				responseFinal = loadCurrencyFromDB(date);
-				return responseFinal;
+				return loadCurrencyFromDB(date);
 			} else {
 				return array.toString();
 			}
@@ -392,9 +391,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 
 	@Override
 	public String getWeatherStatus(String grad) {
-		LocalDate today = LocalDate.now();
-		DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-		today.format(formater);
+		LocalDate todayDate = LocalDate.now();
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+		String today = todayDate.format(formatter);
 		ObjectMapper mapper = new ObjectMapper();
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
 		EntityManager manager = emf.createEntityManager();
@@ -415,9 +414,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 			rs = ps.executeQuery();
 
 			boolean exist = false;
-			LocalTime now = LocalTime.now();
-			System.out.println(now.getHour());
-			int localHour = now.getHour();
+			ZoneId z = ZoneId.of( "Europe/Zagreb" ) ;
+			int localHour = ZonedDateTime.now( z ).getHour() ;
 			List<Integer> downloadArray = new ArrayList<>();
 
 			while (rs.next()) {
@@ -427,16 +425,16 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 			if (downloadArray.size() != 0) {
 				for (int i = 0; i < downloadArray.size(); i++) {
-					if (localHour > 0 && localHour < 6) {
+					if (localHour >= 0 && localHour < 6) {
 						for (int j = 0; j < downloadArray.size(); j++) {
 							int x = Integer.valueOf(downloadArray.get(j));
-							if (x > 0 && x < 6) {
+							if (x >= 0 && x < 6) {
 								exist = true;
 								break;
 							}
 						}
 					}
-					if (localHour <= 6 && localHour < 12) {
+					else if (localHour >= 6 && localHour < 12) {
 						for (int j = 0; j < downloadArray.size(); j++) {
 							int x = Integer.valueOf(downloadArray.get(j));
 							if (x >= 6 && x < 12) {
@@ -445,7 +443,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 							}
 						}
 					}
-					if (localHour >= 12 && localHour < 18) {
+					else if (localHour >= 12 && localHour < 18) {
 						for (int j = 0; j < downloadArray.size(); j++) {
 							int x = Integer.valueOf(downloadArray.get(j));
 							if (x >= 12 && x < 18) {
@@ -454,7 +452,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 							}
 						}
 					}
-					if (localHour >= 18 && localHour < 24) {
+					else if (localHour >= 18 && localHour < 24) {
 						for (int j = 0; j < downloadArray.size(); j++) {
 							int x = Integer.valueOf(downloadArray.get(j));
 							if (x >= 18 && x < 24) {
@@ -544,6 +542,33 @@ public class ConverterDAOImpl implements ConverterDAO {
 		return jsonArray;
 	}
 
+	@Override
+	public String getWeatherSearchHistory() throws JsonProcessingException, SQLException {
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("converterPersistence");
+		EntityManager manager = emf.createEntityManager();
+		ObjectMapper mapper = new ObjectMapper();
+		String jsonArray = "empty";
+		Connection conn = connect();
+		@SuppressWarnings("unchecked")
+		List<Object[]> objects = manager.createQuery(
+				"select querye, region, observationTime,temperature, descriptions,weatherIcon, windSpeed, windDirection,"
+						+ " pressure, precipitation, humidity, cloudcover, feelsLike, uvIndex, visibility, isDay, dates, downloadHour "
+						+ "from Weather").getResultList();
+		List<Weather> forecast = new ArrayList<>(objects.size());
+		for (Object[] o : objects) {
+			forecast.add(new Weather((String) o[0], (String) o[1], (String) o[2], (String) o[3], (String) o[4],
+					(String) o[5], (String) o[6], (String) o[7], (String) o[8], (String) o[9], (String) o[10],
+					(String) o[11], (String) o[12], (String) o[13], (String) o[14], (String) o[15],
+					(String) o[16], (String) o[17] ));
+		}
+		jsonArray = mapper.writeValueAsString(forecast);
+		manager.close();
+		emf.close();
+		conn.close();
+		
+		return jsonArray;
+	}
+	
 	@Override
 	public String getEarthquake() {
 		LocalDate today = LocalDate.now();
@@ -1070,8 +1095,8 @@ public class ConverterDAOImpl implements ConverterDAO {
 	
 	@Override
 	public String submitScore(String playerOne, String playerTwo, String winner) throws SQLException {
+		Connection conn = connect();
 		if (!playerOne.contentEquals("") && !playerTwo.contentEquals("") && !winner.contentEquals("looser")) {
-			Connection conn = connect();
 			String select = "SELECT count(*) FROM TicTacToe WHERE Player = ? AND Opponent = ?";
 			String insert = "INSERT INTO TicTacToe (Player, Opponent, Winner, Looser) VALUES(?,?,?,?)";
 			String updateWinner = "UPDATE TicTacToe SET Winner = Winner + 1 WHERE Player = ? AND Opponent = ?";
@@ -1145,11 +1170,9 @@ public class ConverterDAOImpl implements ConverterDAO {
 					}
 				}
 			}
-			conn.close();
 		}
-		Connection conn = connect();
 		Statement ps = conn.createStatement();
-		ResultSet rs = ps.executeQuery("select player, sum(winner) as winner from tictactoe group by player order by winner desc limit 10");
+		ResultSet rs = ps.executeQuery("select player, sum(winner-looser) as winner from tictactoe group by player order by winner desc limit 10");
 		JSONArray array = new JSONArray();
 		while(rs.next()) {
 			JSONObject obj = new JSONObject();
@@ -1157,6 +1180,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			obj.put("score", rs.getString(2));
 			array.put(obj);
 		}
+		conn.close();
 		return array.toString();
 	}
 	

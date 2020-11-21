@@ -3,6 +3,8 @@ package com.converter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,7 +27,7 @@ public class Controller {
 	Statistika stat;
 	@Autowired
 	ConverterDAO cDao;
-
+	
 	@RequestMapping(value = "/converter/{date}", method = RequestMethod.GET, produces = "application/json")
 	public @ResponseBody String jsonByDate(@PathVariable(value = "date") 
 		String date) throws SQLException, JsonParseException, JsonMappingException, IOException {
@@ -59,6 +61,11 @@ public class Controller {
 	public @ResponseBody String getWeatherStatus(
 			@PathVariable(value = "grad") String grad) throws SQLException {
 		return cService.getWeatherStatus(grad);
+	}
+	
+	@RequestMapping(value = "/weatherHistory", method = RequestMethod.GET, produces = "application/json")
+	public @ResponseBody String getWeatherSearchHistory() throws SQLException, JsonProcessingException {
+		return cDao.getWeatherSearchHistory();
 	}
 	
 	@RequestMapping(value = "/earthquake", method = RequestMethod.GET, produces = "application/json")
@@ -161,5 +168,5 @@ public class Controller {
 			@PathVariable(value="winner") String winner) throws SQLException {
 		return cService.xoSubmitScore(playerOne, playerTwo, winner);
 	}
-	
+		
 }

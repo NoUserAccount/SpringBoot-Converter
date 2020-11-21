@@ -25,14 +25,6 @@ public class Weather {
 	private String isDay;
 	private String dates;
 	private String downloadHour;
-	
-	public String getDownloadHour() {
-		return downloadHour;
-	}
-
-	public void setDownloadHour(String downloadHour) {
-		this.downloadHour = downloadHour;
-	}
 
 	public Weather() {};
 	
@@ -59,11 +51,6 @@ public class Weather {
 		this.isDay = isDay;
 		this.dates = dates;
 	}
-
-
-
-	
-	
 
 	public Weather(String querye, String region, String observationTime, String temperature, String descriptions,
 			String weatherIcon, String windSpeed, String windDirection, String pressure, String precipitation,
@@ -258,17 +245,27 @@ public class Weather {
 	public void setDate(String dates) {
 		this.dates = dates;
 	}
+	
+	public String getDownloadHour() {
+		return downloadHour;
+	}
 
+	public void setDownloadHour(String downloadHour) {
+		this.downloadHour = downloadHour;
+	}
 
 	@Override
 	public String toString() {
 		return "Weather [querye=" + querye + ", region=" + region + ", observationTime=" + observationTime
-				+ ", temperature=" + temperature + ", description=" + descriptions + ", weatherIcon=" + weatherIcon
+				+ ", temperature=" + temperature + ", descriptions=" + descriptions + ", weatherIcon=" + weatherIcon
 				+ ", windSpeed=" + windSpeed + ", windDirection=" + windDirection + ", pressure=" + pressure
 				+ ", precipitation=" + precipitation + ", humidity=" + humidity + ", cloudcover=" + cloudcover
 				+ ", feelsLike=" + feelsLike + ", uvIndex=" + uvIndex + ", visibility=" + visibility + ", isDay="
-				+ isDay + ", dates=" + dates + "]";
+				+ isDay + ", dates=" + dates + ", downloadHour=" + downloadHour + "]";
 	}
+
+
+
 	
 	
 	
