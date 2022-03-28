@@ -249,7 +249,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			// Class.forName("com.mysql.cj.jdbc.Driver");
 			conne = DriverManager.getConnection("jdbc:mysql://localhost:3306/currencyConverter?useUnicode=true&"
 					+ "useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&"
-					+ "useSSL=false", "root", "root");
+					+ "useSSL=false", "zoran", "root");
 			return conne;
 		} catch (Exception e) {
 			System.out.println("Konekcija na bazu nije uspostavljena!");
@@ -628,7 +628,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 		username = username.replaceAll(" ", "");
 		password = password.replaceAll(" ", "");
 		try {
-			String users = "select uid from autorisation";
+			String users = "select uid from Autorisation";
 			String update = "update currencyconverter.Bookshelf set Warning = ? where UID = ? and BID = ?";
 			String sql = "select\n"
 					+ " tab.UID, tab.BID, tab.FirstName, tab.LastName, tab.BookTitle, tab.AuthorLastName,\n"
@@ -1172,7 +1172,7 @@ public class ConverterDAOImpl implements ConverterDAO {
 			}
 		}
 		Statement ps = conn.createStatement();
-		ResultSet rs = ps.executeQuery("select player, sum(winner-looser) as winner from tictactoe group by player order by winner desc limit 10");
+		ResultSet rs = ps.executeQuery("select player, sum(winner-looser) as winner from TicTacToe group by player order by winner desc limit 10");
 		JSONArray array = new JSONArray();
 		while(rs.next()) {
 			JSONObject obj = new JSONObject();
